@@ -1,65 +1,91 @@
+#include <Arduino.h>
 #include "LX790_util.h"
+#include "HAL_LX790.h"
+
+/*
+ * segments:
+ *
+ *   -- 1 --
+ *  |       |
+ *  6       2
+ *  |       |
+ *   -- 7 --
+ *  |       |
+ *  5       3
+ *  |       |
+ *   -- 4 --
+ */
 
 struct
 {
   const char c;
-  const char paddern;
+  const char pattern;
 } const SegChr[] =
 {
   {' ', 0x00},
-  {'1', 0x20 | 0x04},
-  {'2', 0x01 | 0x04 | 0x08 | 0x10 | 0x40 },
-  {'3', 0x01 | 0x04 | 0x08 | 0x20 | 0x40 },
-  {'4', 0x02 | 0x08 | 0x04 | 0x20 },
-  {'5', 0x01 | 0x02 | 0x08 | 0x20 | 0x40 },
-  {'6', 0x01 | 0x02 | 0x08 | 0x10 | 0x20 | 0x40 },
-  {'7', 0x01 | 0x04 | 0x20 },
-  {'8', 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40 },
-  {'0', 0x01 | 0x02 | 0x04 | 0x10 | 0x20 | 0x40 },
-  {'9', 0x01 | 0x02 | 0x04 | 0x08 | 0x20 | 0x40}, 
-  {'E', 0x01 | 0x02 | 0x08 | 0x10 | 0x40 },
-  {'r', 0x08 | 0x10 },
-  {'o', 0x08 | 0x20 | 0x40 | 0x10},                  //off -> "0"
-  {'F', 0x01 | 0x02 | 0x08 | 0x10},
-  {'-', 0x08 },
-  {'A', 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 },
-  {'I', 0x20 | 0x04 },                               // !! wie '1'
-  {'d', 0x04 | 0x08 | 0x10 | 0x20 | 0x40 },
-  {'L', 0x02 | 0x10 | 0x40 },
-  {'P', 0x01 | 0x02 | 0x04 | 0x08 | 0x10 },
-  {'n', 0x10 | 0x08 | 0x20 },
-  {'U', 0x02 | 0x04 | 0x10 | 0x20 | 0x40},
-  {'S', 0x01 | 0x02 | 0x08 | 0x20 | 0x40},           // !! wie '5'
-  {'b', 0x02 | 0x08 | 0x10 | 0x20 | 0x40},
-  {'t', 0x02 | 0x08 | 0x10 | 0x40 },
-  {'H', 0x02 | 0x04 | 0x08 | 0x10 | 0x20 },
+  {'1', SEG2 | SEG3},
+  {'2', SEG1 | SEG2 | SEG7 | SEG5 | SEG4 },
+  {'3', SEG1 | SEG2 | SEG7 | SEG3 | SEG4 },
+  {'4', SEG6 | SEG7 | SEG2 | SEG3 },
+  {'5', SEG1 | SEG6 | SEG7 | SEG3 | SEG4 },
+  {'6', SEG1 | SEG6 | SEG7 | SEG5 | SEG3 | SEG4 },
+  {'7', SEG1 | SEG2 | SEG3 },
+  {'8', SEG1 | SEG6 | SEG2 | SEG7 | SEG5 | SEG3 | SEG4 },
+  {'0', SEG1 | SEG6 | SEG2 | SEG5 | SEG3 | SEG4 },
+  {'9', SEG1 | SEG6 | SEG2 | SEG7 | SEG3 | SEG4}, 
+  {'E', SEG1 | SEG6 | SEG7 | SEG5 | SEG4 },
+  {'r', SEG7 | SEG5 },
+  {'o', SEG7 | SEG3 | SEG4 | SEG5},                   // off is "0FF"
+  {'F', SEG1 | SEG6 | SEG7 | SEG5},
+  {'t', SEG6 | SEG7 | SEG5 | SEG4 },
+  {'^', SEG1 },
+  {'-', SEG7 },
+  {'_', SEG4 },
+  {'[', SEG1 | SEG6 | SEG5 | SEG4},
+  {']', SEG1 | SEG2 | SEG3 | SEG4},
+  {'=', SEG1 | SEG4},
+  {'A', SEG1 | SEG6 | SEG2 | SEG7 | SEG5 | SEG3 },
+  {'I', SEG3 | SEG2 },                               // !! wie '1'
+  {'d', SEG2 | SEG7 | SEG5 | SEG3 | SEG4 },
+  {'L', SEG6 | SEG5 | SEG4 },
+  {'P', SEG1 | SEG6 | SEG2 | SEG7 | SEG5 },
+  {'n', SEG5 | SEG7 | SEG3 },
+  {'O', SEG1 | SEG6 | SEG2 | SEG5 | SEG3 | SEG4 },   // !! wie '0'
+  {'U', SEG6 | SEG2 | SEG5 | SEG3 | SEG4},
+  {'S', SEG1 | SEG6 | SEG7 | SEG3 | SEG4},           // !! wie '5'
+  {'b', SEG6 | SEG7 | SEG5 | SEG3 | SEG4},
+  {'H', SEG6 | SEG2 | SEG7 | SEG5 | SEG3 },
   {0, 0 }
 };
+
+
 
 /*****************************************************************************/
 struct
 {
   const char * Display;
+  const LX790_Mode Mode;
   const char * Str;
-} const TblMsg[] =
+} const LcdToMode[] =
 {
-  {"-F1-", "Regenverzögerung aktiviert."},
-  {"-E1-", "Der Robi befindet sich außerhalb des Funktionsbereichs."},
-  {"-E2-", "Radmotor blockiert."},
-  {"-E3-", "Messer blockiert."},
-  {"-E4-", "Der Robi steckt fest."},
-  {"-E5-", "Der Robi wird hochgehoben."},
-  {"-E6-", "Der Robi wird hochgehoben."},
-  {"-E7-", "Akkufehler"},
-  {"-E8-", "Es dauert zu lange, bis der Robi zur Ladestation zurückkehrt."},
-  {"-EE-", "Unbekannter Fehler."},
-  {"IDLE", "Warte auf Start"},
-  {" OFF", "Ausschalten"},
-  {"STOP", "Gestoppt"},
-  {"|ok|", "Mähbereit"},
-  {"|~~|", "Mähen..."},
-  {"----", "Mähen...Hindernis..."},
-  {nullptr,"null"}
+  {"-F1-", LX790_RAIN, "Regenverzögerung aktiviert."},
+  {"-E1-", LX790_ERROR, "Der Robi befindet sich außerhalb des Funktionsbereichs."},
+  {"-E2-", LX790_ERROR, "Radmotor blockiert."},
+  {"-E3-", LX790_ERROR, "Messer blockiert."},
+  {"-E4-", LX790_ERROR, "Der Robi steckt fest."},
+  {"-E5-", LX790_ERROR, "Der Robi wird hochgehoben."},
+  {"-E6-", LX790_ERROR, "Der Robi wird hochgehoben."},
+  {"-E7-", LX790_ERROR, "Akkufehler"},
+  {"-E8-", LX790_ERROR, "Es dauert zu lange, bis der Robi zur Ladestation zurückkehrt."},
+  {"-EE-", LX790_ERROR, "Unbekannter Fehler."},
+  {" OFF", LX790_POWER_DOWN, "Ausschalten"},
+  {"STOP", LX790_STOP, "Gestoppt"},
+  {"IDLE", LX790_READY, "Warte auf Start"},
+  {"****", LX790_RUNNING, "Mähen..."},
+  {"----", LX790_BLOCKED, "Mähen... Hindernis..."},
+  {"Pin1", LX790_SET_PIN, "neuen Pin eingeben"},
+  {"Pin2", LX790_SET_PIN, "neuen Pin bestätigen"},
+  {nullptr, LX790_UNKNOWN, ""}
 };
 
 struct
@@ -69,6 +95,8 @@ struct
 } const SegmentToLetter[] =
 {
   {"5toP", "STOP"},
+  {"^^^^", "----"}, // blocked
+  {"____", "----"}, // blocked
   {"1dLE", "IDLE"},
   {"   -", "IDLE"},
   {"  -1", "IDLE"},
@@ -79,22 +107,25 @@ struct
   {"LE- ", "IDLE"},
   {"E-  ", "IDLE"},
   {"-   ", "IDLE"},
+  {"[==]", "IDLE"},
   {"   0", " OFF"},
   {"  0F", " OFF"},
   {" 0FF", " OFF"},
   {"0FF ", " OFF"},
   {"0F  ", " OFF"},
   {"F   ", " OFF"},
-  {nullptr,"null"}
+  {"P1n1", "Pin1"},
+  {"P1n2", "Pin2"},
+  {nullptr,""}
 };
 
-char DecodeChar (char raw)
+char decodeChar (char raw)
 {
   int i = 0;
   
   for (i = 0; SegChr[i].c; i++)
   {
-    if (SegChr[i].paddern == raw)
+    if (SegChr[i].pattern == raw)
     {
       return SegChr[i].c;
     }
@@ -103,49 +134,7 @@ char DecodeChar (char raw)
   return '#';
 }
 
-int DecodeChars_IsRun (uint8_t raw[4])
-{
-  int i = 0;
-  int j = 0;
-  int cnt = 0;
-  
-  for (i = 0; i<4; i++)
-  {
-    for (j = 0; j<8; j++)
-    {
-      if(raw[i] & 1<<j)
-      {
-        if(raw[i] != 0x08)
-        {
-          //0x08 ignorieren wg. blinken zwischen "Mähen" und "warte auf Start"
-          //Der mittlere Strich der 7-Segment-Anzeige ist beim Mähen niemals an
-          cnt++;
-        } 
-      }
-    }
-  }
-
-  return cnt == 1;
-}
-
-
-int DecodeChars_IsRunReady (uint8_t raw[4])
-{
-  int i = 0;
-  const uint8_t readyPad[4] = { 0x01|0x02|0x10|0x40,     //   _ _ _ _
-                                0x01|0x40,               //  |_ _ _ _|
-                                0x01|0x40,
-                                0x01|0x04|0x20|0x40 };
-  
-  for (i = 0; i<4; i++)
-  {
-    if (raw[i] != readyPad[i])
-      return 0;
-  }
-  return 1;
-}
-
-uint8_t EncodeSeg (uint8_t c)
+uint8_t encodeSeg (uint8_t c)
 {
   int i = 0;
   
@@ -153,123 +142,67 @@ uint8_t EncodeSeg (uint8_t c)
   {
     if (SegChr[i].c == c)
     {
-      return SegChr[i].paddern;
+      return SegChr[i].pattern;
     }
   }
   
   return (0x01 | 0x08 | 0x40);
 }
 
-const char * LetterOrNumber (char raw[4])
-{ 
-  int i = 0;
-  
-  for (i = 0; SegmentToLetter[i].Display; i++)
-  {
-    if (!memcmp(SegmentToLetter[i].Display, raw, 4))
-    {
-      return SegmentToLetter[i].Str;
-    }
-  }
-  
-  return raw;
+
+inline bool compareDigits(const char a[4], const char b[4]) {
+  return memcmp(a,b,4) == 0;
 }
 
-const char * DecodeMsg (char raw[4])
-{
-  int i = 0;
+void decodeDisplay(LX790_State &state) {
+  state.msg = "";
   
-  for (i = 0; TblMsg[i].Display; i++)
+  // process segments
+  int cnt;
+  for (int i = 0; i<4; i++)
   {
-    if (!memcmp(TblMsg[i].Display, raw, 4))
-    {
-      return TblMsg[i].Str;
+    byte seg = state.segments[i];
+    state.digits[i] = decodeChar(seg);
+    while (seg) {
+      if (seg & 0x01)
+        cnt++; 
+      seg = seg >> 1;
     }
   }
-  
-  return "...";
+  if ( cnt == 1 ) {
+    memcpy(state.digits, "****", 4);  // running
+  }
+
+  // normalize digits (e.g. for scrolling text)
+  for (int i = 0; SegmentToLetter[i].Display; i++)
+  {
+    if ( compareDigits(state.digits, SegmentToLetter[i].Display) )
+    {
+      memcpy(state.digits, SegmentToLetter[i].Str, 4);
+      break;
+    }
+  }
+
+  // mode
+  if ( compareDigits(state.digits, "8888") && state.point == ':' ) {
+    state.mode = LX790_POWER_UP;
+  } else if ( compareDigits(state.digits, "    ") ) {
+    if ( state.clock || state.battery )
+      state.mode = LX790_SLEEP;
+    else
+      state.mode = LX790_OFF;
+  } else { // try to decode text
+    for (int i = 0; LcdToMode[i].Display; i++)
+    {
+      if ( compareDigits(state.digits, LcdToMode[i].Display) )
+      {
+        state.msg = LcdToMode[i].Str;
+        state.mode = LcdToMode[i].Mode;
+        break;
+      }
+    }
+
+  }
+
 }
 
-//  Landxcape LX790
-//  I2C Reverse engineering
-//  
-//  ###### Display
-//  
-//  D  Z1 Z2 Z3 Z4 SY BR CS CS
-//  
-//  02 08 5B 24 08 E0 01 D0 CE  -> E1 gedimmt
-//  02 08 5B 24 08 E0 C9 94 96  -> E1 hell
-//  
-//  02 08 5B 7B 08 E0 01 05 6F  -> E6 gedimmt
-//  02 08 5B 7B 08 E0 C9 41 36  -> E6 hell
-//  
-//  D:  	Typ
-//  
-//  Z1-Z4:	Zahl 1-4
-//
-//        0x01
-//         _
-//  0x02 |   | 0x04
-//         -   0x08
-//  0x10 | _ | 0x20
-//  
-//        0x40
-//  
-//  SY:	Symbole
-//  
-//    Schloss    0x08
-//    Uhr        0x04
-//    Punkte     0x01 und 0x02
-//    WiFi       0x10
-//
-//    Batterie Gehäuse   0x20
-//    Batterie Str. re   0x60
-//    Batterie Str. mi   0xE0
-//  
-//  BR:    Helligkeit (0x01 bis 0xC8 / 1 - 200)
-//    Batterie Str. li   0x01
-//
-//  CS: 2 Byte Checksumme
-//  
-//  ###### Taster
-//  
-//  Master / write -> 01 01 E0 C1
-//  Master / read  <- 01 01 78 00 00 00 00 5B EC	<- Taster "ok"
-//  Master / read  <- 01 04 78 00 00 00 00 5A AF	<- Taster "Home / runter"
-//  Master / read  <- 01 02 78 00 00 00 00 BB 22	<- Taster "Start / hoch"
-//  Master / read  <- 01 00 78 00 00 00 00 FB A9	<- Taster "Power"             0x78: 01111000
-//  Master / read  <- 01 00 FC 00 00 00 00 2D 02	<- Taster "Stop" (Öffner!)    0xFC: 11111100
-//  
-//  ###### Unbekannt
-//  
-//  Master / write -> 04 01 15 3E
-//    -> vermutlich eine Option wie z.B. Ultraschall, welche das Mainboard auf vorhandensein abfragt..?
-//  
-//  ###### Unbekannt
-//  
-//  Master / write -> 05 01 01 83 fb
-//    -> wird nach dem Einschalten ans Display geschickt.. dann nie mehr
-//  
-//  ###### Checksumme
-//
-//  https://crccalc.com/
-//  CRC-16/GENIBUS
-//
-//  ###### Notizen
-//  
-//  Adresse
-//  27	00100111
-//  Adresse + R/W
-//  4E	 01001110 write
-//  4F	 01001111
-//  
-//  Display Beispiele
-//  
-//  08      0000 1000	-
-//  5b	0101 1011	E
-//  24  0010 0100	1
-//  08	0000 1000	-
-//  3F	0011 1111	A
-//  7B	0111 1011	6
-//  5b	0101 1011	E
-//  5D	0101 1101	2
