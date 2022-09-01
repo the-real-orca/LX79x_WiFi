@@ -34,10 +34,27 @@
   .card {
     background-color: #f0f0f0;
     box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
-    padding-top:10px;
-    padding-bottom:20px;
+    padding-top: 10px;
+    padding-bottom: 20px;
   }
+  .config {
+    background-color: #e0e0e0;
+    padding-top: 5px;
+    padding-bottom: 10px;
+  }
+  #toggle_config {
+    font-size: x-large; 
+    text-align: right;
+    padding: 0px 20px;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+   }  
   .button {
+    display: inline-block;
     padding: 15px 30px;
     font-size: 24px;
     text-align: center;
@@ -86,6 +103,10 @@
     border: 0;
     padding: 30px 30px;
    }
+   .hide {
+    display: none;
+   }
+
   </style>
 </head>
 
@@ -131,15 +152,25 @@
         <button name="startmow" id="b6" class="button">Mähen start</button>
         <button name="homemow" id="b7" class="button">Zur Ladestation</button>
       </p>
-      <p>
-        <button name="workzone" id="b8" class="button buttonSmall">Arbeitsbereich</button>
-        <button name="timedate" id="b9" class="button buttonSmall">Zeit, Daum</button>
-      </p>
+    </div>
+    <br>
+    <div class="card config">
+      <div id="toggle_config">
+        &#x1F6E0;
+      </div>
+      <div id="config" class="hide">
+        <p>
+          <button name="workzone" id="b8" class="button">Arbeitsbereich</button>
+          <button name="timedate" id="b9" class="button">Zeit, Daum</button>
+        </p>
+        <p>
+          <a href="update.html" class="button">firmware update</a>
+        </p>
+        <div id="status" style="font-size:12px; color:grey">status ...</div>
+      </div>
+
     </div>
   <br>
-  </div>
-  <div>
-    <div id="status" style="font-size:12px; color:grey">---</div>
   </div>
 
   <script>
@@ -171,8 +202,9 @@
       imgLockArr[i].src = imgBatLock[i];
     }
 
+    document.getElementById("toggle_config").addEventListener("click",  ActionConfigToggle);
+
     ActValues();
-    ActStatus();
   }
   function initButton(id)
   {
@@ -234,6 +266,10 @@
     xhr.send();
 
     var t = setTimeout(ActValues, 100);
+  }
+  function ActionConfigToggle()
+  {
+    document.getElementById("config").classList.toggle('hide');
   }
   </script>
 </body>
