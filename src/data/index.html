@@ -184,7 +184,7 @@
   function onLoad(event) 
   {
     var i = 0;
-    var imgBatName = ['bat_empty.png', 'bat_low.png', 'bat_mid.png', 'bat_full.png'];
+    var imgBatName = ['bat_empty.png', 'bat_low.png', 'bat_mid.png', 'bat_full.png', 'bat_charging.png'];
     var imgBatLock = ['unlocked.png', 'locked.png'];
 
     console.log('...init');
@@ -265,7 +265,7 @@
     }
     xhr.send();
 
-    var t = setTimeout(ActValues, 100);
+    var t = setTimeout(ActValues, 1000); <!-- @todo set to 200 -->
   }
   function ActionConfigToggle()
   {

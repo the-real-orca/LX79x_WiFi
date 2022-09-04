@@ -35,6 +35,9 @@ void TaskHW( void * pvParameters )
  
   while(1)
   {
+    // @TODO sync state
+
+
     // check WLAN state
     if (WiFi_WasConnected)
     {
@@ -69,9 +72,8 @@ void TaskHW( void * pvParameters )
     HAL_loop(state);
     decodeDisplay(state);
 
-    // handle buttons @TODO
+    // @TODO handle buttons 
 
-    // sync state @TODO
 
     delay(1);
   }
