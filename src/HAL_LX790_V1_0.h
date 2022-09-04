@@ -8,7 +8,6 @@
 
 #include "LX790_util.h"
 
-
 //Hardware  
 #define SDA_PIN_MAINBOARD    33  /*default 21*/
 #define SCL_PIN_MAINBOARD    25  /*default 22*/

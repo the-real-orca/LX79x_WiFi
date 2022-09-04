@@ -68,7 +68,7 @@ struct
   const char * Str;
 } const LcdToMode[] =
 {
-  {"-F1-", LX790_RAIN, "Regenverzögerung aktiviert."},
+  {"-F1-", LX790_RAIN,  "Regenverzögerung aktiviert."},
   {"-E1-", LX790_ERROR, "Der Robi befindet sich außerhalb des Funktionsbereichs."},
   {"-E2-", LX790_ERROR, "Radmotor blockiert."},
   {"-E3-", LX790_ERROR, "Messer blockiert."},
@@ -78,15 +78,27 @@ struct
   {"-E7-", LX790_ERROR, "Akkufehler"},
   {"-E8-", LX790_ERROR, "Es dauert zu lange, bis der Robi zur Ladestation zurückkehrt."},
   {"-EE-", LX790_ERROR, "Unbekannter Fehler."},
-  {" OFF", LX790_POWER_DOWN, "Ausschalten"},
-  {"STOP", LX790_STOP, "Gestoppt"},
+  {" OFF", LX790_OFF,   "Ausgeschalten"},
+  {"STOP", LX790_STOP,  "Gestoppt"},
   {"IDLE", LX790_READY, "Warte auf Start"},
   {"****", LX790_RUNNING, "Mähen..."},
   {"----", LX790_BLOCKED, "Mähen... Hindernis..."},
   {"Pin1", LX790_SET_PIN, "neuen Pin eingeben"},
   {"Pin2", LX790_SET_PIN, "neuen Pin bestätigen"},
+  {" USB", LX790_USB,     "USB Stick erkannt"},
   {nullptr, LX790_UNKNOWN, ""}
 };
+
+/*
+ER:50	Error updating main cpu firmware (.pck)
+ER:51	Error opening .pck file
+ER:52	Error firmware downgrade not allowed
+EF:80	Error updating motor firmware (factory first program)
+ER:80	Error updating motor firmware
+ER:82	Error updating sensorMcu firmware (ultrasound/wire)
+ER:83	Error updating imu (BOSCH BNO055)
+ER:84	Error initializing imu (BOSCH BNO055)
+*/
 
 struct
 {
@@ -112,10 +124,12 @@ struct
   {"  0F", " OFF"},
   {" 0FF", " OFF"},
   {"0FF ", " OFF"},
-  {"0F  ", " OFF"},
+  {"FF  ", " OFF"},
   {"F   ", " OFF"},
   {"P1n1", "Pin1"},
   {"P1n2", "Pin2"},
+  {" U56", " USB"},
+  {"U56 ", " USB"},
   {nullptr,""}
 };
 
@@ -146,9 +160,8 @@ uint8_t encodeSeg (uint8_t c)
     }
   }
   
-  return (0x01 | 0x08 | 0x40);
+  return (SEG1 | SEG4 | SEG7);
 }
-
 
 inline bool compareDigits(const char a[4], const char b[4]) {
   return memcmp(a,b,4) == 0;
@@ -158,7 +171,7 @@ void decodeDisplay(LX790_State &state) {
   state.msg = "";
   
   // process segments
-  int cnt;
+  int cnt=0;
   for (int i = 0; i<4; i++)
   {
     byte seg = state.segments[i];
@@ -186,6 +199,8 @@ void decodeDisplay(LX790_State &state) {
   // mode
   if ( compareDigits(state.digits, "8888") && state.point == ':' ) {
     state.mode = LX790_POWER_UP;
+  } else if ( state.mode == LX790_POWER_UP && state.digits[3]=='-') {
+    state.mode = LX790_ENTER_PIN;
   } else if ( compareDigits(state.digits, "    ") ) {
     if ( state.clock || state.battery )
       state.mode = LX790_SLEEP;
