@@ -31,21 +31,24 @@ void TaskHW( void * pvParameters )
 
   // init HW Communication
   LX790_State state;
+  memset(&state, 0x00, sizeof state);
+  state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
+  state.msg = "";  
   HAL_setup();
- 
+  state.updated = true;
+
   while(1)
   {
-    // @TODO sync state
-
-
     // check WLAN state
+    wl_status_t wifiStatus = WiFi.status();
+    state.wifi = (wifiStatus == WL_CONNECTED);
     if (WiFi_WasConnected)
     {
       if (millis() - Lst_WiFi_Status > 10000)
       {
         Lst_WiFi_Status = millis();
 
-        if (WiFi.status() != WL_CONNECTED)
+        if (wifiStatus != WL_CONNECTED)
         {
           Serial.println(F("WLAN reconnect.."));
           WiFi.disconnect();
@@ -55,7 +58,7 @@ void TaskHW( void * pvParameters )
     }
     else
     {
-      if (WiFi.status() == WL_CONNECTED)
+      if (wifiStatus == WL_CONNECTED)
       {
         WiFi_WasConnected = 1;
         Serial.print  (F("WiFi successfully connected with IP: "));
@@ -70,7 +73,18 @@ void TaskHW( void * pvParameters )
 
     // do HW communication
     HAL_loop(state);
-    decodeDisplay(state);
+
+    // sync state
+    if ( state.updated ) {
+      decodeDisplay(state);
+  
+/*  
+      std::lock_guard<std::mutex> lock(stateMutex);
+      memcpy(&stateShared, &state, sizeof state);
+      state.updated = false;
+*/      
+    }
+
 
     // @TODO handle buttons 
 

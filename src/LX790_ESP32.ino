@@ -28,25 +28,27 @@ void setup()
   if (SemMutex == NULL)
     Serial.println(F("init semaphore error"));
 
+
   xTaskCreatePinnedToCore(
-    TaskHW,   /* Function to implement the task -> I2C, WiFi*/
-    "TaskHW", /* Name of the task */
-    10000,   /* Stack size in words */
-    NULL,    /* Task input parameter */
-    1,       /* Priority of the task */
-    &hTaskHW, /* Task handle. */
-    0);      /* Core where the task should run */
+    TaskHW,   // Function to implement the task -> I2C, WiFi
+    "TaskHW", // Name of the task
+    10000,   // Stack size in words
+    NULL,    // Task input parameter
+    1,       // Priority of the task
+    &hTaskHW, // Task handle
+    0);      // Core where the task should run
 
   delay(500);
 
+
   xTaskCreatePinnedToCore(
-    TaskWeb,   /* Function to implement the task -> Webserver*/
-    "TaskWeb", /* Name of the task */
-    10000,   /* Stack size in words */
-    NULL,    /* Task input parameter */
-    1,       /* Priority of the task */
-    &hTaskWeb, /* Task handle. */
-    1);      /* Core where the task should run */
+    TaskWeb,   // Function to implement the task -> Webserver
+    "TaskWeb", // Name of the task
+    10000,   // Stack size in words
+    NULL,    // Task input parameter
+    1,       // Priority of the task
+    &hTaskWeb, // Task handle
+    1);      // Core where the task should run
 }
 
 void loop()

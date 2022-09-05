@@ -42,17 +42,9 @@ void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
 
 ESP32SPISlave tm1668;
 uint8_t spi_slave_rx_buf[32];
-#if DEBUG_SERIAL_PRINT
-  static uint8_t rawData[8][32];
-  static uint8_t bufNr;
-#endif
 
 void HAL_setup()
 {
-#if DEBUG_SERIAL_PRINT
-  bufNr=0;
-#endif  
-
   // init HW Communication
   tm1668.setDataMode(SPI_MODE1);
   tm1668.setSlaveFlags(SPI_SLAVE_BIT_LSBFIRST);
@@ -65,58 +57,36 @@ void HAL_setup()
 }
 
 void HAL_loop(LX790_State &state) {
-  bool printout = false;
-
   // read data via SPI
   if (tm1668.remained() == 0)
     tm1668.queue(spi_slave_rx_buf, sizeof spi_slave_rx_buf);
 
   while (tm1668.available()) {
-
     int size = tm1668.size();
-    if ( !size ) {
-      tm1668.pop();
-      continue;
+    if ( size ) {
+      uint8_t cmd = spi_slave_rx_buf[0];
+      switch ( cmd & DISPLAY_CMD_MASK ) {
+        case DISPLAY_CMD_MODE_SET:
+        case DISPLAY_CMD_DATA_SET:
+          // ignore
+          break;
+        
+        case DISPLAY_CMD_CONTROL:
+          state.brightness = bitRead(cmd, 4) ? 0 : (cmd & 0xE) + 1;
+          break;
+
+        case DISPLAY_CMD_ADDRESS:
+          if ( size == 15)
+            decodeTM1668(spi_slave_rx_buf+1, state);
+          state.updated = true;
+          break;
+      }
     }
-      
-#if DEBUG_SERIAL_PRINT
-    memset(spi_slave_rx_buf+size, 0x00, 32-size);
-    memcpy(rawData[bufNr++], spi_slave_rx_buf, 32);
-#endif
-
-    uint8_t cmd = spi_slave_rx_buf[0];
-    switch ( cmd & DISPLAY_CMD_MASK ) {
-      case DISPLAY_CMD_MODE_SET:
-      case DISPLAY_CMD_DATA_SET:
-        // ignore
-        break;
-      
-      case DISPLAY_CMD_CONTROL:
-        state.brightness = bitRead(cmd, 4) ? 0 : (cmd & 0xE) + 1;
-        break;
-
-      case DISPLAY_CMD_ADDRESS:
-        if ( size == 15)
-          decodeTM1668(spi_slave_rx_buf+1, state);
-        printout = true;
-        break;
-    }
-
     tm1668.pop();
   }
 
-  if ( printout ) {
+  if ( state.updated ) {
 #if DEBUG_SERIAL_PRINT
-    for (int j = 0; j < bufNr; j++) {
-      Serial.print("raw ");
-      for (size_t i = 0; i < 32; ++i) {
-          Serial.print(rawData[j][i], HEX);Serial.print(" ");
-      }
-      Serial.println();
-    }
-    bufNr = 0;
-#endif
-
     Serial.print(" clock "); Serial.print(state.clock);
     Serial.print(" wifi "); Serial.print(state.wifi);
     Serial.print(" lock "); Serial.print(state.lock);
@@ -126,6 +96,7 @@ void HAL_loop(LX790_State &state) {
     Serial.print(" | LCD "); 
     Serial.print(state.digits[0]); Serial.print(state.digits[1]); Serial.print(state.point); Serial.print(state.digits[2]); Serial.print(state.digits[3]);
     Serial.println();
+#endif
   }
 
   delay(1);

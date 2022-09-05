@@ -3,6 +3,13 @@
 #include "HAL_LX790.h"
 
 /*
+// mutex and shared memory
+std::mutex stateMutex;
+LX790_State stateShared;
+std::mutex cmdMutex;
+*/
+
+/*
  * segments:
  *
  *   -- 1 --

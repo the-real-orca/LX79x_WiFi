@@ -234,6 +234,8 @@
     {
       if (xhr.readyState === 4 && xhr.status === 200 && xhr.responseText.length) 
       {
+        setTimeout(ActValues, 200);
+
         var resArr = xhr.responseText.split(";");
         
         //cnt;seg1;seg2;seg3;seg4;point;lock;clock;bat
@@ -261,11 +263,10 @@
                                                         " Err Cnt: "+resArr[8]+
                                                         " Err Lst: "+resArr[9];
         document.getElementById("mowerstatus").textContent = resArr[10];
+
       }
     }
     xhr.send();
-
-    var t = setTimeout(ActValues, 1000); <!-- @todo set to 200 -->
   }
   function ActionConfigToggle()
   {

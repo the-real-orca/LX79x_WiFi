@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <mutex>
 
 typedef enum {LX790_UNKNOWN = 0, LX790_POWER_UP, LX790_ENTER_PIN, LX790_READY, 
         LX790_RUNNING, LX790_BLOCKED, LX790_GOING_HOME, LX790_STOP, LX790_CHARGING, 
@@ -17,8 +18,18 @@ typedef struct {
   byte battery;
   byte brightness;
   LX790_Mode mode;
+  bool updated;
   const char *msg;
 } LX790_State;
+
+/*
+// mutex and shared memory
+// LX790 State TaskHW --> TaskWeb
+extern std::mutex stateMutex;
+extern LX790_State stateShared;
+// @todo command queue TaskWeb --> TaskHW
+extern std::mutex cmdMutex;
+*/
 
 char decodeChar (char raw);
 uint8_t encodeSeg (uint8_t c);
