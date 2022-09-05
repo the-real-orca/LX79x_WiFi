@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <string.h>
+#include "LX790_util.h"
 
 // Copy "config_sample.h" to "config.h" and change it according to your setup.
 #include "config.h"
@@ -11,9 +12,8 @@ TaskHandle_t hTaskWeb;   //Web...
 void TaskHW( void * pvParameters );
 void TaskWeb( void * pvParameters );
 
-const char* Buttons[] = {"I/O", "start", "home", "ok", "stop", nullptr};
-
-SemaphoreHandle_t SemMutex;
+SemaphoreHandle_t stateQueue = NULL;
+QueueHandle_t cmdQueue = NULL;
 
 void setup()
 {
@@ -24,10 +24,17 @@ void setup()
   Serial.print  (F(" time: "));
   Serial.println(__TIME__);
 
-  SemMutex = xSemaphoreCreateMutex();
-  if (SemMutex == NULL)
-    Serial.println(F("init semaphore error"));
+  stateQueue = xQueueCreate(2, sizeof(LX790_State));
+  if (stateQueue == NULL) {
+    Serial.println(F("init state queue error"));
+    while(1) {}
+  }
 
+  cmdQueue = xQueueCreate(16, sizeof(CMD_Type));
+  if (cmdQueue == NULL) {
+    Serial.println(F("init command queue error"));
+    while(1) {}
+  }
 
   xTaskCreatePinnedToCore(
     TaskHW,   // Function to implement the task -> I2C, WiFi
@@ -40,7 +47,6 @@ void setup()
 
   delay(500);
 
-
   xTaskCreatePinnedToCore(
     TaskWeb,   // Function to implement the task -> Webserver
     "TaskWeb", // Name of the task
@@ -49,6 +55,8 @@ void setup()
     1,       // Priority of the task
     &hTaskWeb, // Task handle
     1);      // Core where the task should run
+
+  Serial.println("Tasks started");
 }
 
 void loop()

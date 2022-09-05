@@ -6,6 +6,35 @@
 
 #include "HAL_LX790_V1_1.h"
 
+static inline byte getButtonPin(BUTTONS btn) {
+  switch (btn) {
+    case BTN_IO:
+      return BTN_PIN_IO;
+    case BTN_START:
+      return BTN_PIN_START;
+    case BTN_HOME:
+      return BTN_PIN_HOME;
+    case BTN_OK:
+      return BTN_PIN_OK;
+    case BTN_STOP:
+      return BTN_PIN_STOP;
+    default:
+      return 0;
+  }  
+}
+
+void HAL_buttonPress(BUTTONS btn) {
+  byte pin = getButtonPin(btn);
+  digitalWrite(pin, 0);
+Serial.print("HAL_buttonPress "); Serial.println(pin); // @todo debug output
+}
+
+void HAL_buttonRelease(BUTTONS btn) {
+  byte pin = getButtonPin(btn);
+  digitalWrite(pin, 1);
+Serial.print("HAL_buttonRelease "); Serial.println(pin); // @todo debug output
+}
+
 void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
 
   // clock
@@ -54,6 +83,11 @@ void HAL_setup()
   pinMode(DIO_PIN_DISPLAY, INPUT);
   pinMode(CLK_PIN_DISPLAY, INPUT);
 
+  pinMode(BTN_PIN_IO, OUTPUT_OPEN_DRAIN);
+  pinMode(BTN_PIN_START, OUTPUT_OPEN_DRAIN);
+  pinMode(BTN_PIN_HOME, OUTPUT_OPEN_DRAIN);
+  pinMode(BTN_PIN_OK, OUTPUT_OPEN_DRAIN);
+  pinMode(BTN_PIN_STOP, OUTPUT_OPEN_DRAIN);
 }
 
 void HAL_loop(LX790_State &state) {

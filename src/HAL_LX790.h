@@ -20,6 +20,9 @@ void HAL_setup();
  */
 void HAL_loop(LX790_State &state);
 
+void HAL_buttonPress(BUTTONS btn);
+void HAL_buttonRelease(BUTTONS btn);
+
 #if HW_MODEL == LX790_V1_0
   #include "HAL_LX790_V1_0.h"
 #elif HW_MODEL == LX790_V1_1

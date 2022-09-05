@@ -2,12 +2,6 @@
 #include "LX790_util.h"
 #include "HAL_LX790.h"
 
-/*
-// mutex and shared memory
-std::mutex stateMutex;
-LX790_State stateShared;
-std::mutex cmdMutex;
-*/
 
 /*
  * segments:
@@ -228,3 +222,12 @@ void decodeDisplay(LX790_State &state) {
 
 }
 
+void queueButton(BUTTONS btn, int delay) {
+  CMD_Type cmd;
+  cmd = {CMD_Type::BTN_PRESS, btn};
+  xQueueSend(cmdQueue, &cmd, 0);
+  cmd = {CMD_Type::WAIT, delay};
+  xQueueSend(cmdQueue, &cmd, 0);
+  cmd = {CMD_Type::BTN_RELEASE, btn};
+  xQueueSend(cmdQueue, &cmd, 0);
+}

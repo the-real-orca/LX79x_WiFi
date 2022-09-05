@@ -57,8 +57,11 @@
 #define SEG6 0x20
 #define SEG7 0x40
 
-//Buttons
-// @TODO Button Pins
-
+//Buttons @TODO
+#define BTN_PIN_IO    21
+#define BTN_PIN_START 22
+#define BTN_PIN_HOME  23
+#define BTN_PIN_OK    24
+#define BTN_PIN_STOP  25
 
 #endif

@@ -21,16 +21,20 @@ typedef struct {
   bool updated;
   const char *msg;
 } LX790_State;
-
-/*
-// mutex and shared memory
 // LX790 State TaskHW --> TaskWeb
-extern std::mutex stateMutex;
-extern LX790_State stateShared;
-// @todo command queue TaskWeb --> TaskHW
-extern std::mutex cmdMutex;
-*/
+extern QueueHandle_t stateQueue;
 
+typedef enum {BTN_NA = 0, BTN_IO, BTN_START, BTN_HOME, BTN_OK, BTN_STOP} BUTTONS;
+static const char* ButtonNames[] = {"n/a", "io", "start", "home", "ok", "stop", nullptr};
+typedef struct {
+  enum {NA = 0, BTN_PRESS, BTN_RELEASE, WAIT} cmd;
+  signed int param;
+} CMD_Type;
+// LX790 Commands TaskWeb --> TaskHW
+extern QueueHandle_t cmdQueue;
+void queueButton(BUTTONS btn, int delay = 250);
+
+// display helper functions
 char decodeChar (char raw);
 uint8_t encodeSeg (uint8_t c);
 void decodeDisplay(LX790_State &out);

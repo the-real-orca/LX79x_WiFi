@@ -1,9 +1,5 @@
 #include <Arduino.h>
 #include <string.h>
-#include <Wire.h>
-//#include "CRC16.h"
-#include "CRC.h"
-#include "ahWireSlave.h"
 #include <WiFi.h>
 #include "LX790_util.h"
 
@@ -17,40 +13,52 @@ const char* ssid     = SSID;
 const char* password = PASSWORD;
 const char* hostname = HOSTNAME;
 
+extern TaskHandle_t hTaskHW;
+extern TaskHandle_t hTaskWeb;
+
 #include "HAL_LX790.h"
 
 void TaskHW( void * pvParameters )
 {
+  unsigned long time;
+
   // init WiFi
-  int WiFi_WasConnected = 0;
-  unsigned long Lst_WiFi_Status = 0;
+  bool  WiFiConnected = false;
+  unsigned long lastWifiUpdate = 0;
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
   WiFi.setHostname(hostname);
   WiFi.begin(ssid, password);
-  Lst_WiFi_Status = millis();
 
   // init HW Communication
   LX790_State state;
+  unsigned long lastStateUpdate = 0;
   memset(&state, 0x00, sizeof state);
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
   state.msg = "";  
   HAL_setup();
   state.updated = true;
 
+  // command handling
+  CMD_Type cmd = {CMD_Type::NA, 0};
+  unsigned long cmdStart = 0;
+
   while(1)
   {
+    time = millis();
+
     // check WLAN state
     wl_status_t wifiStatus = WiFi.status();
     state.wifi = (wifiStatus == WL_CONNECTED);
-    if (WiFi_WasConnected)
+    if ( WiFiConnected )
     {
-      if (millis() - Lst_WiFi_Status > 10000)
+      if ( (time - lastWifiUpdate) > 5000)
       {
-        Lst_WiFi_Status = millis();
+        lastWifiUpdate = time;
 
         if (wifiStatus != WL_CONNECTED)
         {
-          Serial.println(F("WLAN reconnect.."));
+          WiFiConnected = false;
+          Serial.println(F("WiFi reconnect.."));
           WiFi.disconnect();
           WiFi.begin(ssid, password);
         }
@@ -60,13 +68,13 @@ void TaskHW( void * pvParameters )
     {
       if (wifiStatus == WL_CONNECTED)
       {
-        WiFi_WasConnected = 1;
+        WiFiConnected = true;
         Serial.print  (F("WiFi successfully connected with IP: "));
         Serial.println(WiFi.localIP());
       }
-      else if (millis() - Lst_WiFi_Status > 1000)
+      else if ( (time - lastWifiUpdate) > 1000)
       {
-        Lst_WiFi_Status = millis();
+        lastWifiUpdate = time;
         Serial.println(F("WiFi connect.."));
       }
     }
@@ -74,19 +82,58 @@ void TaskHW( void * pvParameters )
     // do HW communication
     HAL_loop(state);
 
+    // simulate
+    int minutes = (time/1000) / 60;
+    int seconds = (time/1000) % 60;
+    state.segments[0] = encodeSeg( '-' );
+    state.segments[1] = encodeSeg( '-');
+    state.segments[2] = encodeSeg( seconds / 10 + '0');
+    state.segments[3] = encodeSeg( seconds % 10 + '0');    
+
+
     // sync state
-    if ( state.updated ) {
+    if ( state.updated || ( (time - lastStateUpdate) > 2000) ) {
+      lastStateUpdate = time;
       decodeDisplay(state);
-  
-/*  
-      std::lock_guard<std::mutex> lock(stateMutex);
-      memcpy(&stateShared, &state, sizeof state);
+
+      xQueueSend(stateQueue, &state, 0);
       state.updated = false;
-*/      
     }
 
 
-    // @TODO handle buttons 
+    // handle command queue
+    if ( !cmd.cmd ) {
+      // get next command if we have no active command handled
+      if ( xQueueReceive(cmdQueue, &cmd, 0) == pdPASS ) {
+        cmdStart = time;
+      } else {
+        cmd.cmd = CMD_Type::NA;
+      }
+    }
+
+    switch ( cmd.cmd ) {
+      case CMD_Type::NA:
+        // nothing to do
+        break;
+
+      case CMD_Type::WAIT:
+        if ( (time - cmdStart) > cmd.param ) {
+          // finished
+          cmd.cmd = CMD_Type::NA;
+        }
+        break;
+
+      case CMD_Type::BTN_PRESS:
+        HAL_buttonPress(static_cast<BUTTONS>(cmd.param));
+        cmd.cmd = CMD_Type::NA;
+        break;
+
+      case CMD_Type::BTN_RELEASE:
+        HAL_buttonRelease(static_cast<BUTTONS>(cmd.param));
+        cmd.cmd = CMD_Type::NA;
+        break;
+    }
+
 
 
     delay(1);

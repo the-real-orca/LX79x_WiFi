@@ -40,7 +40,7 @@ void Web_aktStatusWeb()
 // Response:  [DisplayWithDelimiter];[rssi dbm];[batAsText];[MowerStatustext]
 void Web_aktStatusValues()
 {
-  const char* BatState[] = {"off", "empty", "low", "mid", "full", "charging"};
+  static const char* BatState[] = {"off", "empty", "low", "mid", "full", "charging"};
   int IdxBatState = 0;
   
   if (state.mode == LX790_OFF)
@@ -71,78 +71,38 @@ void Web_getCmd()
   if (server.argName(0) == "parm" &&
       server.argName(1) == "value")
   {
-    int i = 0;
+    String param = server.arg(0);
     int val = server.arg(1).toInt();
-    
-/* @TODO    
-    xSemaphoreTake(SemMutex, 1);
+    CMD_Type cmd;
 
-    if (thExchange.cmdQueIdx)
-    {
-      server.send(500, "text/plain", "busy...");
-      return;
-    }
-
-    if (server.arg(0) == "workzone" && val > 0)
-    {
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_start = millis();
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_end = millis()+3500;
-      thExchange.cmdQue[thExchange.cmdQueIdx].WebInButton[0] = BTN_BYTE1_OK;
-      thExchange.cmdQueIdx++;
-    }
-    else if (server.arg(0) == "timedate" && val > 0)
-    {
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_start = millis();
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_end = millis()+3500;
-      thExchange.cmdQue[thExchange.cmdQueIdx].WebInButton[0] = BTN_BYTE1_START;
-      thExchange.cmdQueIdx++;
-    }
-    else if (server.arg(0) == "startmow" && val > 0)
-    {
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_start = millis();
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_end = millis()+200;
-      thExchange.cmdQue[thExchange.cmdQueIdx].WebInButton[0] = BTN_BYTE1_START;
-      thExchange.cmdQueIdx++;
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_start = millis()+300;
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_end = millis()+500;
-      thExchange.cmdQue[thExchange.cmdQueIdx].WebInButton[0] = BTN_BYTE1_OK;
-      thExchange.cmdQueIdx++;
-    }
-    else if (server.arg(0) == "homemow" && val > 0)
-    {
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_start = millis();
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_end = millis()+200;
-      thExchange.cmdQue[thExchange.cmdQueIdx].WebInButton[0] = BTN_BYTE1_HOME;
-      thExchange.cmdQueIdx++;
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_start = millis()+300;
-      thExchange.cmdQue[thExchange.cmdQueIdx].T_end = millis()+500;
-      thExchange.cmdQue[thExchange.cmdQueIdx].WebInButton[0] = BTN_BYTE1_OK;
-      thExchange.cmdQueIdx++;
-    }
-    else
-    {
-      for (i=0; Buttons[i]; i++)
+    if (server.arg(0) == "workzone" && val) {
+      queueButton(BTN_OK, 3500);
+    } else if (server.arg(0) == "timedate" && val) {
+      queueButton(BTN_START, 3500);
+    } else if (server.arg(0) == "startmow" && val) {
+      queueButton(BTN_START, 250);
+      cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);
+      queueButton(BTN_OK, 250);
+    } else if (server.arg(0) == "homemow" && val) {
+      queueButton(BTN_HOME, 250);
+      cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);
+      queueButton(BTN_OK, 250);
+    } else {
+      for (int i=1; ButtonNames[i]; i++)
       {
-        if (server.arg(0) == Buttons[i])
+        if (server.arg(0) == ButtonNames[i])
         {
-          if (i==0) //OnOff pushbutton
-          {
-            digitalWrite(OUT_IO, val?LOW:HIGH);
+          if ( val > 1 ) {
+            queueButton(static_cast<BUTTONS>(i), val);
+          } else if ( val ) {
+            cmd = {CMD_Type::BTN_PRESS, i}; xQueueSend(cmdQueue, &cmd, 0);
+          } else {
+            cmd = {CMD_Type::BTN_RELEASE, i}; xQueueSend(cmdQueue, &cmd, 0);
           }
-          thExchange.WebInButtonState[i] = val > 0;
-          
-          if (thExchange.WebInButtonState[i])
-          {
-            thExchange.WebInButtonTime[i] = val + millis();
-          }        
           break;
         }
       }
     }
-    thExchange.Cnt_timeout = 0;      
-    xSemaphoreGive(SemMutex);
-*/
-
   }
   else
   {
@@ -271,14 +231,10 @@ void TaskWeb( void * pvParameters )
     server.handleClient();
 
     // sync state
-/*  
-    {
-      std::lock_guard<std::mutex> lock(stateMutex);
-      if ( stateShared.updated )
-        memcpy(&state, &stateShared, sizeof state);
+    if ( xQueueReceive(stateQueue, &state, 0) == pdPASS ) {
+//      Serial.print('+');
     }
-*/      
-    
+
 
     delay(10);
   }
