@@ -217,7 +217,7 @@ void decodeDisplay(LX790_State &state) {
     static uint8_t oldBattery = 0;
     static unsigned long lastChargeUpdate = 0;
     unsigned long time = millis();
-    if ( (state.battery > oldBattery) || ((time-lastChargeUpdate) > 2000) ) {
+    if ( (state.battery > oldBattery) || ((time-lastChargeUpdate) < 5000) ) {
       state.mode = LX790_CHARGING;
       state.msg = "Laden ...";
       lastChargeUpdate = time; 

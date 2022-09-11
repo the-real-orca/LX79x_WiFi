@@ -180,20 +180,14 @@
   </div>
 
   <script>
-  var imgBatArr = new Array();
-  var imgLockArr = new Array();
-  var CntWebOut = 0;
-  var LstCntWebOut = 0;
-  var status;
-
+  let imgBatArr = ['bat_empty.png', 'bat_low.png', 'bat_mid.png', 'bat_full.png', 'bat_charging.png'];
+  let imgLockArr = ['unlocked.png', 'locked.png'];
+  let status = {lock: -1, clock: -1, battery: -1};
+  
   window.addEventListener('load', onLoad);
 
   function onLoad(event) 
   {
-    var i = 0;
-    var imgBatName = ['bat_empty.png', 'bat_low.png', 'bat_mid.png', 'bat_full.png', 'bat_charging.png'];
-    var imgBatLock = ['unlocked.png', 'locked.png'];
-
     console.log('...init');
 
     const btns = document.getElementsByTagName("button");
@@ -201,16 +195,6 @@
       initButton(btns[i]);
     }
 
-    for (i=0; i<imgBatName.length; i++)
-    {
-      imgBatArr[i] = new Image();
-      imgBatArr[i].src = imgBatName[i];
-    }
-    for (i=0; i<imgBatLock.length; i++)
-    {
-      imgLockArr[i] = new Image();
-      imgLockArr[i].src = imgBatLock[i];
-    }
 
     document.getElementById("toggle_config").addEventListener("click",  ActionConfigToggle);
 
@@ -244,10 +228,10 @@
     {
       if (xhr.readyState === 4 && xhr.status === 200 && xhr.responseText.length) 
       {
-        setTimeout(ActValues, 150);
+        setTimeout(ActValues, 200);
 
         document.getElementById("status").textContent = xhr.responseText;
-        var oldStatus = status;
+        let oldStatus = status;
         status = JSON.parse(xhr.responseText);
         
         document.getElementById("seg1").textContent = status.digits[0];
@@ -256,11 +240,13 @@
         document.getElementById("seg4").textContent = status.digits[3];
         document.getElementById("gap2").textContent = status.point;
         if ( status.lock != oldStatus.lock )
-          document.getElementById("lock").src = imgLockArr[status.lock].src;
+          document.getElementById("lock").src = imgLockArr[status.lock];
         if ( status.clock != oldStatus.clock )
           document.getElementById("clock").style.visibility = (status.clock ? 'visible' : 'hidden');
+        if ( status.mode == "LX790_CHARGING" )
+          status.battery = 4;
         if ( status.battery != oldStatus.battery )
-          document.getElementById("bat").src = imgBatArr[status.battery].src;
+          document.getElementById("bat").src = imgBatArr[status.battery];
         document.getElementById("msg").textContent = status.msg;
       }
     }

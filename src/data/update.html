@@ -1,47 +1,47 @@
 <!DOCTYPE HTML><html>
 <head>
   <title>LX790 lawn mower Update</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta content="de" http-equiv="Content-Language" />
-  <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-  <link rel="icon" type="image/png" href="robomower.png">
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <meta content='de' http-equiv='Content-Language' />
+  <meta content='text/html; charset=utf-8' http-equiv='Content-Type' />
+  <link rel='icon' type='image/png' href='robomower.png'>
   <script>
     function uploadFile() {
       var formdata = new FormData();
       if ( fileupload.files[0] ) {
-        formdata.append("file", fileupload.files[0]);
+        formdata.append('file', fileupload.files[0]);
         var per = 0;
         document.getElementById('progress').textContent = 'progress: ' + Math.round(per*100) + '%';
         var ajax = new XMLHttpRequest();
-        ajax.upload.addEventListener("progress", progressHandler, false);
-        ajax.addEventListener("load", completeHandler, false);
-        ajax.addEventListener("error", errorHandler, false);
-        ajax.addEventListener("abort", errorHandler, false);
-        ajax.open("POST", "/execupdate");
+        ajax.upload.addEventListener('progress', progressHandler, false);
+        ajax.addEventListener('load', completeHandler, false);
+        ajax.addEventListener('error', errorHandler, false);
+        ajax.addEventListener('abort', errorHandler, false);
+        ajax.open('POST', '/execupdate');
         ajax.send(formdata);
       } else {
-        alert("Please select a new ESP firmware (*.bin)!");
+        alert('Please select a new ESP firmware (*.bin)!');
       }
     }
 
     function progressHandler(event) {
       var percent = Math.round((event.loaded / event.total) * 100);
-      document.getElementById('progress').textContent = percent + "% uploading ...";
+      document.getElementById('progress').textContent = percent + '% uploading ...';
       if ( percent == 100)
         completeHandler(event)
     }
 
     function completeHandler(event) {
-      document.getElementById('progress').textContent = "upload finished";
+      document.getElementById('progress').textContent = 'upload finished';
       setTimeout(()=>{
-        alert("Upload Finished");
-        window.location.href = "/";
+        alert('Upload Finished');
+        window.location.href = '/';
       }, 200)
     }
 
     function errorHandler(event) {
-      document.getElementById('progress').textContent = "upload failed";
-      alert("Upload Error");
+      document.getElementById('progress').textContent = 'upload failed';
+      alert('Upload Error');
     }
   </script>  
 </head>
@@ -51,11 +51,11 @@
     <h1>LX79x Update</h1>
   </div>
   <div>
-    <input id="fileupload" type="file" name="fileupload" accept=".bin">
-    <button onclick="uploadFile()">Update</button>
+    <input id='fileupload' type='file' name='fileupload' accept='.bin'>
+    <button onclick='uploadFile()'>Update</button>
   </div>
   <br>
-  <div id="progress">---</div>
+  <div id='progress'>---</div>
 
  </body>
 </html>

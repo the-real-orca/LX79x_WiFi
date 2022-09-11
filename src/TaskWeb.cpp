@@ -26,7 +26,7 @@ void Web_aktStatusWeb()
                   "\"point\":\"%c\","
                   "\"lock\":%d, \"clock\":%d, \"wifi\":%d,"
                   "\"battery\":%d, \"brightness\":%d,"
-                  "\"mode\":%d,"
+                  "\"mode\": \"%s\","
                   "\"cmdQueue\":%d,"
                   "\"rssi\":%d,"
                   "\"msg\":\"%s\","
@@ -36,8 +36,8 @@ void Web_aktStatusWeb()
     state.digits[0],state.digits[1],state.digits[2],state.digits[3],
     state.point,
     state.lock, state.clock, state.wifi,
-    (state.mode==LX790_CHARGING) ? 4: state.battery, state.brightness,
-    state.mode,
+    state.battery, state.brightness,
+    ModeNames[state.mode],
     state.cmdQueueActive,
     WiFi.RSSI(),
     state.msg,
