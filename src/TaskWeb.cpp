@@ -20,47 +20,30 @@ LX790_State state;
 // Response:  [cnt];[Display];[point];[lock];[clock];[bat];[rssi dbm];[Cnt_timeout];[Cnt_err];[LstError];[MowerStatustext]
 void Web_aktStatusWeb()
 {
-  sprintf(out, "%0.1f;%c%c%c%c;%c;%d;%d;%d;%d;%d;%d;%d;%s", 
+  sprintf(out, "{\"runtime\":%0.1f,"
+                  "\"segments\":[%d,%d,%d,%d],"
+                  "\"digits\":\"%c%c%c%c\","
+                  "\"point\":\"%c\","
+                  "\"lock\":%d, \"clock\":%d, \"wifi\":%d,"
+                  "\"battery\":%d, \"brightness\":%d,"
+                  "\"mode\":%d,"
+                  "\"cmdQueue\":%d,"
+                  "\"rssi\":%d,"
+                  "\"msg\":\"%s\","
+                  "\"build\":\"%s %s\"}",
     millis()/1000.0,
+    state.segments[0],state.segments[1],state.segments[2],state.segments[3],
     state.digits[0],state.digits[1],state.digits[2],state.digits[3],
     state.point,
-    state.lock,
-    state.clock,
-    (state.mode==LX790_CHARGING) ? 4: state.battery,
+    state.lock, state.clock, state.wifi,
+    (state.mode==LX790_CHARGING) ? 4: state.battery, state.brightness,
+    state.mode,
+    state.cmdQueueActive,
     WiFi.RSSI(),
-    0, // @todo Cnt_timeout, 
-    0, // @todo Cnt_err, 
-    0, // @todo Lst_err,
-    state.msg);
+    state.msg,
+    __DATE__, __TIME__);
     
-  server.send(200,"text/plain", out);
-}
-
-// Request:   http://MOWERADRESS/statval
-// Response:  [DisplayWithDelimiter];[rssi dbm];[batAsText];[MowerStatustext]
-void Web_aktStatusValues()
-{
-  static const char* BatState[] = {"off", "empty", "low", "mid", "full", "charging"};
-  int IdxBatState = 0;
-  
-  if (state.mode == LX790_OFF)
-    IdxBatState = 0;
-  else if (state.mode == LX790_CHARGING)
-    IdxBatState = 5; /*charging*/
-  else
-    IdxBatState = state.battery + 1;
-
-  sprintf(out, "%c%c%c%c%c;%d;%s;%s",
-          state.digits[0],
-          state.digits[1],
-          state.point,
-          state.digits[2],
-          state.digits[3],
-          WiFi.RSSI(),
-          BatState[IdxBatState],
-          state.msg);
-  
-  server.send(200,"text/plain", out);
+  server.send(200,"text/json", out);
 }
 
 //Webcommand examples: 
@@ -87,6 +70,18 @@ void Web_getCmd()
       queueButton(BTN_HOME, 250);
       cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);
       queueButton(BTN_OK, 250);
+    } else if (server.arg(0) == "setpin" && val) {
+      cmd = {CMD_Type::BTN_PRESS, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::BTN_PRESS, BTN_HOME}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::WAIT, 5500}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::BTN_RELEASE, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::BTN_RELEASE, BTN_HOME}; xQueueSend(cmdQueue, &cmd, 0);
+    } else if (server.arg(0) == "setstarttime" && val) {
+      cmd = {CMD_Type::BTN_PRESS, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::BTN_PRESS, BTN_STOP}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::WAIT, 5500}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::BTN_RELEASE, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::BTN_RELEASE, BTN_STOP}; xQueueSend(cmdQueue, &cmd, 0);
     } else {
       for (int i=1; ButtonNames[i]; i++)
       {
@@ -102,6 +97,7 @@ void Web_getCmd()
           break;
         }
       }
+    state.cmdQueueActive = 1;
     }
   }
   else
@@ -116,29 +112,21 @@ void Web_getCmd()
 void Web_execupdate()
 {
   HTTPUpload& upload = server.upload();
-  if (upload.status == UPLOAD_FILE_START) 
-  {
+  if (upload.status == UPLOAD_FILE_START) {
     Serial.printf("Update: %s\n", upload.filename.c_str());
-    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) 
-    { //start with max available size
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { 
+      //start with max available size
       Update.printError(Serial);
     }
-  } else if (upload.status == UPLOAD_FILE_WRITE) 
-  {
-    /* flashing firmware to ESP*/
-    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) 
-    {
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    // flashing firmware to ESP
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
       Update.printError(Serial);
     }
-  } 
-  else if (upload.status == UPLOAD_FILE_END) 
-  {
-    if (Update.end(true)) 
-    { //true to set the size to the current progress
-      Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-    } 
-    else 
-    {
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (Update.end(true)) {
+      Serial.printf("Update Success: %u Bytes\nRebooting...\n", upload.totalSize);
+    } else {
       Update.printError(Serial);
     }
   }
@@ -221,7 +209,6 @@ void TaskWeb( void * pvParameters )
 
   server.on("/cmd", HTTP_GET, Web_getCmd);
   server.on("/web", Web_aktStatusWeb);
-  server.on("/statval", Web_aktStatusValues);
 
   server.begin();
 
@@ -232,7 +219,6 @@ void TaskWeb( void * pvParameters )
 
     // sync state
     if ( xQueueReceive(stateQueue, &state, 0) == pdPASS ) {
-//      Serial.print('+');
     }
 
 

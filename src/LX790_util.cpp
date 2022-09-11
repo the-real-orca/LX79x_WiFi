@@ -79,11 +79,11 @@ struct
   {"-E7-", LX790_ERROR, "Akkufehler"},
   {"-E8-", LX790_ERROR, "Es dauert zu lange, bis der Robi zur Ladestation zurückkehrt."},
   {"-EE-", LX790_ERROR, "Unbekannter Fehler."},
-  {" OFF", LX790_OFF,   "Ausgeschalten"},
+  {" OFF", LX790_OFF,   "ausgeschalten"},
   {"STOP", LX790_STOP,  "Gestoppt"},
   {"IDLE", LX790_READY, "Warte auf Start"},
-  {"****", LX790_RUNNING, "Mähen..."},
-  {"----", LX790_BLOCKED, "Mähen... Hindernis..."},
+  {"[==]", LX790_DOCKED, "in Ladestation"},
+  {"^^^^", LX790_BLOCKED, "Mähen... Hindernis..."},
   {"Pin1", LX790_SET_PIN, "neuen Pin eingeben"},
   {"Pin2", LX790_SET_PIN, "neuen Pin bestätigen"},
   {" USB", LX790_USB,     "USB Stick erkannt"},
@@ -108,8 +108,8 @@ struct
 } const SegmentToLetter[] =
 {
   {"5toP", "STOP"},
-  {"^^^^", "----"}, // blocked
-  {"____", "----"}, // blocked
+  {"^^^^", "^^^^"},
+  {"____", "^^^^"},
   {"1dLE", "IDLE"},
   {"   -", "IDLE"},
   {"  -1", "IDLE"},
@@ -120,7 +120,6 @@ struct
   {"LE- ", "IDLE"},
   {"E-  ", "IDLE"},
   {"-   ", "IDLE"},
-  {"[==]", "IDLE"},
   {"   0", " OFF"},
   {"  0F", " OFF"},
   {" 0FF", " OFF"},
@@ -177,14 +176,12 @@ void decodeDisplay(LX790_State &state) {
   {
     byte seg = state.segments[i];
     state.digits[i] = decodeChar(seg);
+    seg = seg & (~SEG7); // clear '-' segment
     while (seg) {
       if (seg & 0x01)
         cnt++; 
       seg = seg >> 1;
     }
-  }
-  if ( cnt == 1 ) {
-    memcpy(state.digits, "****", 4);  // running
   }
 
   // normalize digits (e.g. for scrolling text)
@@ -198,15 +195,37 @@ void decodeDisplay(LX790_State &state) {
   }
 
   // mode
-  if ( compareDigits(state.digits, "8888") && state.point == ':' ) {
+  if ( cnt == 1 ) {
+    // running
+    state.mode = LX790_RUNNING;
+    state.msg = "Mähen ...";
+    for (int i = 0; i<4; i++)
+    {
+      state.digits[i] = state.segments[i] ? ' ' : '*';
+    }
+  } else if ( compareDigits(state.digits, "8888") && state.point == ':' ) {
     state.mode = LX790_POWER_UP;
   } else if ( state.mode == LX790_POWER_UP && state.digits[3]=='-') {
     state.mode = LX790_ENTER_PIN;
+    state.msg = "PIN eingeben";
   } else if ( compareDigits(state.digits, "    ") ) {
     if ( state.clock || state.battery )
       state.mode = LX790_SLEEP;
     else
       state.mode = LX790_OFF;
+  } else if ( compareDigits(state.digits, "[==]") ) {
+    static uint8_t oldBattery = 0;
+    static unsigned long lastChargeUpdate = 0;
+    unsigned long time = millis();
+    if ( (state.battery > oldBattery) || ((time-lastChargeUpdate) > 2000) ) {
+      state.mode = LX790_CHARGING;
+      state.msg = "Laden ...";
+      lastChargeUpdate = time; 
+    } else {
+      state.mode = LX790_DOCKED;
+      state.msg = "in Ladestation";
+    }
+    oldBattery = state.battery;
   } else { // try to decode text
     for (int i = 0; LcdToMode[i].Display; i++)
     {
@@ -219,7 +238,6 @@ void decodeDisplay(LX790_State &state) {
     }
 
   }
-
 }
 
 void queueButton(BUTTONS btn, int delay) {

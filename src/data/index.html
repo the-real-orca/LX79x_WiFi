@@ -11,11 +11,11 @@
     text-align: center;
   }
   h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     color: #707070;
   }
   h2{
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: bold;
     color: #143642;
   }
@@ -140,17 +140,19 @@
            </tr>
         </table>
         
-        <div id="mowerstatus" class="info">---</div>
+        <div id="msg" class="info">---</div>
       <p>
-        <button name="io" id="b1" class="button">I/O</button>
-        <button name="start" id="b2" class="button">Start &uarr;</button>
-        <button name="home" id="b3" class="button">Home &darr;</button>
-        <button name="ok" id="b4" class="button">Ok</button>
-        <button name="stop" id="b5" class="button buttonred">Stop</button>
+        <button name="io" id="btn_io" class="button">I/O</button>
+        <button name="start" id="btn_start" class="button">Start &uarr;</button>
+        <button name="home" id="btn_home" class="button">Home &darr;</button>
+        <button name="ok" id="btn_ok" class="button">Ok</button>
       </p>
       <p>
-        <button name="startmow" id="b6" class="button">Mähen start</button>
-        <button name="homemow" id="b7" class="button">Zur Ladestation</button>
+        <button name="startmow" id="btn_startmow" class="button">Mähen start</button>
+        <button name="homemow" id="btn_homemow" class="button">Zur Ladestation</button>
+      </p>
+      <p>
+        <button name="stop" id="btn_stop" class="button buttonred">Stop</button>
       </p>
     </div>
     <br>
@@ -160,11 +162,15 @@
       </div>
       <div id="config" class="hide">
         <p>
-          <button name="workzone" id="b8" class="button">Arbeitsbereich</button>
-          <button name="timedate" id="b9" class="button">Zeit, Daum</button>
+          <button name="workzone" id="btn_workzone" class="button">Arbeitsbereich</button>
+          <button name="timedate" id="btn_timedate" class="button">Zeit, Datum</button>
         </p>
         <p>
-          <a href="update.html" class="button">firmware update</a>
+          <button name="setpin" id="btn_setpin" class="button">Pin</button>
+          <button name="setstarttime" id="btn_setstarttime" class="button">Startzeit</button>
+        </p>
+        <p>
+          <a href="update.html" class="button">ESP32 aktualisieren</a>
         </p>
         <div id="status" style="font-size:12px; color:grey">status ...</div>
       </div>
@@ -178,6 +184,7 @@
   var imgLockArr = new Array();
   var CntWebOut = 0;
   var LstCntWebOut = 0;
+  var status;
 
   window.addEventListener('load', onLoad);
 
@@ -188,8 +195,11 @@
     var imgBatLock = ['unlocked.png', 'locked.png'];
 
     console.log('...init');
-    for (i=1; i<=9;i++)
-      initButton('b'+i);
+
+    const btns = document.getElementsByTagName("button");
+    for (let i = 0; i < btns.length; i++) {
+      initButton(btns[i]);
+    }
 
     for (i=0; i<imgBatName.length; i++)
     {
@@ -206,11 +216,11 @@
 
     ActValues();
   }
-  function initButton(id)
+  function initButton(btn)
   {
-    document.getElementById(id).addEventListener("mousedown",  ActionButtonOn);     
-    document.getElementById(id).addEventListener("mouseup",    ActionButtonOff);     
-    document.getElementById(id).addEventListener("mouseleave", ActionButtonOff);     
+    btn.addEventListener("mousedown",  ActionButtonOn);
+    btn.addEventListener("mouseup",    ActionButtonOff);
+    btn.addEventListener("mouseleave", ActionButtonOff);
   }
   function ActionButtonOn() 
   {
@@ -234,36 +244,24 @@
     {
       if (xhr.readyState === 4 && xhr.status === 200 && xhr.responseText.length) 
       {
-        setTimeout(ActValues, 200);
+        setTimeout(ActValues, 150);
 
-        var resArr = xhr.responseText.split(";");
+        document.getElementById("status").textContent = xhr.responseText;
+        var oldStatus = status;
+        status = JSON.parse(xhr.responseText);
         
-        //cnt;seg1;seg2;seg3;seg4;point;lock;clock;bat
-        //[cnt];[Display];[point];[lock];[clock];[bat];[rssi dbm];[Cnt_timeout];[Cnt_err];[LstError];[text]
-        CntWebOut = resArr[0];
-        document.getElementById("seg1").textContent = resArr[1][0];
-        document.getElementById("seg2").textContent = resArr[1][1];
-        document.getElementById("seg3").textContent = resArr[1][2];
-        document.getElementById("seg4").textContent = resArr[1][3];
-        document.getElementById("gap2").textContent = resArr[2];
-        document.getElementById("lock").src = imgLockArr[resArr[3]].src;
-        document.getElementById("clock").style.visibility = (resArr[4] == 1 ? 'visible' : 'hidden');
-        if (resArr[5] >= 0)
-        {
-          document.getElementById("bat").style.visibility = 'visible';
-          document.getElementById("bat").src = imgBatArr[resArr[5]].src;
-        }
-        else
-        {
-          document.getElementById("bat").style.visibility = 'hidden';
-        }
-        document.getElementById("status").textContent = "RSSI: "+resArr[6]+" dbm"+
-                                                        " Cnt WebOut "+CntWebOut+
-                                                        " To Cnt: "+resArr[7]+
-                                                        " Err Cnt: "+resArr[8]+
-                                                        " Err Lst: "+resArr[9];
-        document.getElementById("mowerstatus").textContent = resArr[10];
-
+        document.getElementById("seg1").textContent = status.digits[0];
+        document.getElementById("seg2").textContent = status.digits[1];
+        document.getElementById("seg3").textContent = status.digits[2];
+        document.getElementById("seg4").textContent = status.digits[3];
+        document.getElementById("gap2").textContent = status.point;
+        if ( status.lock != oldStatus.lock )
+          document.getElementById("lock").src = imgLockArr[status.lock].src;
+        if ( status.clock != oldStatus.clock )
+          document.getElementById("clock").style.visibility = (status.clock ? 'visible' : 'hidden');
+        if ( status.battery != oldStatus.battery )
+          document.getElementById("bat").src = imgBatArr[status.battery].src;
+        document.getElementById("msg").textContent = status.msg;
       }
     }
     xhr.send();

@@ -25,14 +25,29 @@ static inline byte getButtonPin(BUTTONS btn) {
 
 void HAL_buttonPress(BUTTONS btn) {
   byte pin = getButtonPin(btn);
-  digitalWrite(pin, 0);
-Serial.print("HAL_buttonPress "); Serial.println(pin); // @todo debug output
+  if ( btn == BTN_STOP ) {
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, 1);
+  } else {
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, 0);
+  }
+  #if DEBUG_SERIAL_PRINT
+    Serial.printf("button pressed (D%d)", pin);
+  #endif
 }
 
 void HAL_buttonRelease(BUTTONS btn) {
   byte pin = getButtonPin(btn);
-  digitalWrite(pin, 1);
-Serial.print("HAL_buttonRelease "); Serial.println(pin); // @todo debug output
+  if ( btn == BTN_STOP ) {
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, 0);
+  } else {
+    pinMode(pin, INPUT);
+  }
+  #if DEBUG_SERIAL_PRINT
+    Serial.printf("button released (D%d)", pin);
+  #endif
 }
 
 void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
@@ -83,11 +98,16 @@ void HAL_setup()
   pinMode(DIO_PIN_DISPLAY, INPUT);
   pinMode(CLK_PIN_DISPLAY, INPUT);
 
-  pinMode(BTN_PIN_IO, OUTPUT_OPEN_DRAIN);
-  pinMode(BTN_PIN_START, OUTPUT_OPEN_DRAIN);
-  pinMode(BTN_PIN_HOME, OUTPUT_OPEN_DRAIN);
-  pinMode(BTN_PIN_OK, OUTPUT_OPEN_DRAIN);
-  pinMode(BTN_PIN_STOP, OUTPUT_OPEN_DRAIN);
+  digitalWrite(BTN_PIN_IO, 0);
+  digitalWrite(BTN_PIN_START, 0);
+  digitalWrite(BTN_PIN_HOME, 0);
+  digitalWrite(BTN_PIN_OK, 0);
+  digitalWrite(BTN_PIN_STOP, 0);
+  pinMode(BTN_PIN_IO, INPUT);
+  pinMode(BTN_PIN_START, INPUT);
+  pinMode(BTN_PIN_HOME, INPUT);
+  pinMode(BTN_PIN_OK, INPUT);
+  pinMode(BTN_PIN_STOP, OUTPUT);
 }
 
 void HAL_loop(LX790_State &state) {
@@ -132,8 +152,6 @@ void HAL_loop(LX790_State &state) {
     Serial.println();
 #endif
   }
-
-  delay(1);
 }
 
 

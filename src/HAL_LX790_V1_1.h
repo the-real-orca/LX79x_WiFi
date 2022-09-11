@@ -23,9 +23,9 @@
 #define VSPI_MISO 19
 
 // (mis-)use SPI in slave mode for TM1668 data communication
-#define CS_PIN_DISPLAY  HSPI_CS		// Chip Select / STB for TM1668, low active
-#define DIO_PIN_DISPLAY HSPI_MOSI	// data pin
-#define CLK_PIN_DISPLAY HSPI_CLK	// sample on rising edge
+#define CS_PIN_DISPLAY  HSPI_CS		// Chip Select / STB for TM1668, low active, Cable #15
+#define DIO_PIN_DISPLAY HSPI_MOSI	// data pin, Cable #6
+#define CLK_PIN_DISPLAY HSPI_CLK	// sample on rising edge, Cable #2
 
 #define DISPLAY_CMD_MASK     0xC0
 #define DISPLAY_CMD_MODE_SET 0x00	// mode settings
@@ -57,11 +57,11 @@
 #define SEG6 0x20
 #define SEG7 0x40
 
-//Buttons @TODO
-#define BTN_PIN_IO    21
-#define BTN_PIN_START 22
-#define BTN_PIN_HOME  23
-#define BTN_PIN_OK    24
-#define BTN_PIN_STOP  25
+// Buttons Pins
+#define BTN_PIN_IO    27	// Cable #3
+#define BTN_PIN_START 25	// Cable #12
+#define BTN_PIN_HOME  32	// Cable #16
+#define BTN_PIN_OK    33	// Cable #13
+#define BTN_PIN_STOP  26	// Cable #9 & #11
 
 #endif

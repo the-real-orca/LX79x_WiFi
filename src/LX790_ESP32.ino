@@ -56,7 +56,6 @@ void setup()
     &hTaskWeb, // Task handle
     1);      // Core where the task should run
 
-  Serial.println("Tasks started");
 }
 
 void loop()

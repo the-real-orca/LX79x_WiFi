@@ -82,15 +82,6 @@ void TaskHW( void * pvParameters )
     // do HW communication
     HAL_loop(state);
 
-    // simulate
-    int minutes = (time/1000) / 60;
-    int seconds = (time/1000) % 60;
-    state.segments[0] = encodeSeg( '-' );
-    state.segments[1] = encodeSeg( '-');
-    state.segments[2] = encodeSeg( seconds / 10 + '0');
-    state.segments[3] = encodeSeg( seconds % 10 + '0');    
-
-
     // sync state
     if ( state.updated || ( (time - lastStateUpdate) > 2000) ) {
       lastStateUpdate = time;
@@ -100,17 +91,19 @@ void TaskHW( void * pvParameters )
       state.updated = false;
     }
 
-
     // handle command queue
     if ( !cmd.cmd ) {
       // get next command if we have no active command handled
       if ( xQueueReceive(cmdQueue, &cmd, 0) == pdPASS ) {
         cmdStart = time;
+        state.cmdQueueActive = 1;
       } else {
         cmd.cmd = CMD_Type::NA;
+        state.cmdQueueActive = 0;
       }
+    } else {
+      state.cmdQueueActive = 1;
     }
-
     switch ( cmd.cmd ) {
       case CMD_Type::NA:
         // nothing to do
@@ -134,9 +127,7 @@ void TaskHW( void * pvParameters )
         break;
     }
 
-
-
-    delay(1);
+    delay(5);
   }
 }
 
