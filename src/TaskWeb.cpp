@@ -9,12 +9,24 @@
 #include <Update.h>
 #include "LX790_util.h"
 
+
 // Copy "config_sample.h" to "config.h" and change it according to your setup.
 #include "config.h"
 
 WebServer server(80);
-char out[400];
+static char out[512];
 LX790_State state;
+
+const char *UPDATE_HTML =
+  #include "update.html.h"
+;
+
+String formatBytes(size_t bytes);
+String getContentType(String filename);
+bool exists(String path);
+bool handleFileRead(String path);
+void handleFileUpload();
+void handleFileList();
 
 // Request:   http://MOWERADRESS/web
 // Response:  [cnt];[Display];[point];[lock];[clock];[bat];[rssi dbm];[Cnt_timeout];[Cnt_err];[LstError];[MowerStatustext]
@@ -113,7 +125,9 @@ void Web_execupdate()
 {
   HTTPUpload& upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
-    Serial.printf("Update: %s\n", upload.filename.c_str());
+    #if DEBUG_SERIAL_PRINT
+      Serial.printf("Update: %s\n", upload.filename.c_str());
+    #endif
     if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { 
       //start with max available size
       Update.printError(Serial);
@@ -130,54 +144,6 @@ void Web_execupdate()
       Update.printError(Serial);
     }
   }
-}
-
-String getContentType(String filename){
-    if(filename.endsWith(".htm")) return "text/html";
-    else if(filename.endsWith(".html")) return "text/html";
-    else if(filename.endsWith(".css")) return "text/css";
-    else if(filename.endsWith(".js")) return "application/javascript";
-    else if(filename.endsWith(".png")) return "image/png";
-    else if(filename.endsWith(".gif")) return "image/gif";
-    else if(filename.endsWith(".jpg")) return "image/jpeg";
-    else if(filename.endsWith(".ico")) return "image/x-icon";
-    else if(filename.endsWith(".xml")) return "text/xml";
-    else if(filename.endsWith(".json")) return "text/json";
-    else if(filename.endsWith(".pdf")) return "application/x-pdf";
-    else if(filename.endsWith(".zip")) return "application/x-zip";
-    else if(filename.endsWith(".gz")) return "application/x-gzip";
-    return "text/plain";
-}
-
-bool handleFileRead(String path) {
-    String contentType = getContentType(path);
-    String pathWithGz = path + ".gz";
-    bool gZip = false;
-
-    if ( path.indexOf("..") >= 0 ) {
-        // security alert -> trying to exit web root
-        return false;
-    }
-
-    if ( SPIFFS.exists(pathWithGz) )	{
-        gZip = true;
-        path = pathWithGz;
-    }
-    if ( gZip || SPIFFS.exists(path) ) {
-        File file = SPIFFS.open(path, "r");
-
-        if ( gZip && contentType != "application/x-gzip" && contentType != "application/octet-stream" ) {
-            server.sendHeader("Content-Encoding", "gzip");
-        }
-        server.setContentLength(file.size());
-        server.send(200, contentType, "");
-        WiFiClient client = server.client();
-        client.setNoDelay(true);
-        client.write(file);
-        file.close();
-        return true;
-    }
-    return false;
 }
 
 void TaskWeb( void * pvParameters )
@@ -201,15 +167,43 @@ void TaskWeb( void * pvParameters )
           server.send(404, "text/plain", "FileNotFound");
   });
 
+  server.on("/update", HTTP_GET, []() {
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", UPDATE_HTML);
+
+    server.sendContent("<ul>");
+
+    File root = SPIFFS.open("/");
+    File file = root.openNextFile();
+    while(file) {
+      sprintf(out, "<li>%s (%s)</li>",
+        file.name(),
+        formatBytes(file.size()).c_str()
+      );
+      server.sendContent(out);
+      file = root.openNextFile();
+    }
+    server.sendContent("</ul>");
+    server.sendContent("</body></html>");
+    server.sendContent("");
+
+     
+  });
+  server.on("/fileupload", HTTP_POST, []() {
+    server.sendHeader("Location", "/update");
+    server.send(301, "text/plain", "OK");
+  }, handleFileUpload);
+
   server.on("/execupdate", HTTP_POST, []() {
-    server.sendHeader("Connection", "close");
     server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-    ESP.restart();
+    CMD_Type cmd = {CMD_Type::REBOOT, 500}; xQueueSend(cmdQueue, &cmd, 0);
   }, Web_execupdate );
 
-  server.on("/cmd", HTTP_GET, Web_getCmd);
-  server.on("/web", Web_aktStatusWeb);
 
+  server.on("/cmd", HTTP_GET, Web_getCmd);
+  server.on("/web", HTTP_GET, Web_aktStatusWeb);
+
+  server.enableCORS(true);
   server.begin();
 
   while(1)

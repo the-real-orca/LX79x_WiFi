@@ -82,7 +82,7 @@ struct
   {" OFF", LX790_OFF,   "ausgeschalten"},
   {"STOP", LX790_STOP,  "Gestoppt"},
   {"IDLE", LX790_READY, "Warte auf Start"},
-  {"[==]", LX790_DOCKED, "in Ladestation"},
+  {"[  ]", LX790_DOCKED, "in Ladestation"},
   {"^^^^", LX790_BLOCKED, "Mähen... Hindernis..."},
   {"Pin1", LX790_SET_PIN, "neuen Pin eingeben"},
   {"Pin2", LX790_SET_PIN, "neuen Pin bestätigen"},
@@ -110,6 +110,7 @@ struct
   {"5toP", "STOP"},
   {"^^^^", "^^^^"},
   {"____", "^^^^"},
+  {"[==]", "[  ]"},
   {"1dLE", "IDLE"},
   {"   -", "IDLE"},
   {"  -1", "IDLE"},
@@ -169,9 +170,9 @@ inline bool compareDigits(const char a[4], const char b[4]) {
 
 void decodeDisplay(LX790_State &state) {
   state.msg = "";
-  
+
   // process segments
-  int cnt=0;
+  int segCnt=0;
   for (int i = 0; i<4; i++)
   {
     byte seg = state.segments[i];
@@ -179,7 +180,7 @@ void decodeDisplay(LX790_State &state) {
     seg = seg & (~SEG7); // clear '-' segment
     while (seg) {
       if (seg & 0x01)
-        cnt++; 
+        segCnt++; 
       seg = seg >> 1;
     }
   }
@@ -193,34 +194,37 @@ void decodeDisplay(LX790_State &state) {
       break;
     }
   }
-
+ 
   // mode
-  if ( cnt == 1 ) {
+  if ( segCnt == 1 ) {
     // running
     state.mode = LX790_RUNNING;
-    state.msg = "Mähen ...";
+    state.msg = "läuft ...";
     for (int i = 0; i<4; i++)
     {
       state.digits[i] = state.segments[i] ? ' ' : '*';
     }
   } else if ( compareDigits(state.digits, "8888") && state.point == ':' ) {
     state.mode = LX790_POWER_UP;
-  } else if ( state.mode == LX790_POWER_UP && state.digits[3]=='-') {
+  } else if ( (state.mode == LX790_POWER_UP || state.mode == LX790_ENTER_PIN) && state.digits[3]=='-') {
     state.mode = LX790_ENTER_PIN;
     state.msg = "PIN eingeben";
   } else if ( compareDigits(state.digits, "    ") ) {
-    if ( state.clock || state.battery )
+    if ( state.clock || state.battery ) {
       state.mode = LX790_SLEEP;
-    else
+    } else {
       state.mode = LX790_OFF;
-  } else if ( compareDigits(state.digits, "[==]") ) {
+      state.msg = "ausgeschalten";
+    }
+  } else if ( compareDigits(state.digits, "[  ]") ) {
     static uint8_t oldBattery = 0;
     static unsigned long lastChargeUpdate = 0;
     unsigned long time = millis();
     if ( (state.battery > oldBattery) || ((time-lastChargeUpdate) < 5000) ) {
       state.mode = LX790_CHARGING;
       state.msg = "Laden ...";
-      lastChargeUpdate = time; 
+       if (state.battery > oldBattery)
+        lastChargeUpdate = time; 
     } else {
       state.mode = LX790_DOCKED;
       state.msg = "in Ladestation";

@@ -116,6 +116,14 @@ void TaskHW( void * pvParameters )
         }
         break;
 
+      case CMD_Type::REBOOT:
+        if ( (time - cmdStart) > cmd.param ) {
+          // finished
+          cmd.cmd = CMD_Type::NA;
+          ESP.restart();
+        }
+        break;
+
       case CMD_Type::BTN_PRESS:
         HAL_buttonPress(static_cast<BUTTONS>(cmd.param));
         cmd.cmd = CMD_Type::NA;
