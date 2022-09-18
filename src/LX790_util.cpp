@@ -169,6 +169,10 @@ inline bool compareDigits(const char a[4], const char b[4]) {
 }
 
 void decodeDisplay(LX790_State &state) {
+  static unsigned long lastModeUpdate = 0;
+  unsigned long time = millis();
+  unsigned long delta = time - lastModeUpdate;
+  static bool unlockPin = true;
   state.msg = "";
 
   // process segments
@@ -206,9 +210,15 @@ void decodeDisplay(LX790_State &state) {
     }
   } else if ( compareDigits(state.digits, "8888") && state.point == ':' ) {
     state.mode = LX790_POWER_UP;
-  } else if ( (state.mode == LX790_POWER_UP || state.mode == LX790_ENTER_PIN) && state.digits[3]=='-') {
-    state.mode = LX790_ENTER_PIN;
+    unlockPin = true;
+  } else if (state.lock==true && (state.digits[3]=='-' || delta < 5000)) {
+    if ( state.mode == LX790_SET_PIN )
+      state.mode = LX790_SET_PIN;
+    else
+      state.mode = LX790_ENTER_PIN;
     state.msg = "PIN eingeben";
+    if ( state.digits[3]=='-' )
+      lastModeUpdate = time; 
   } else if ( compareDigits(state.digits, "    ") ) {
     if ( state.clock || state.battery ) {
       state.mode = LX790_SLEEP;
@@ -216,20 +226,23 @@ void decodeDisplay(LX790_State &state) {
       state.mode = LX790_OFF;
       state.msg = "ausgeschalten";
     }
+    unlockPin = true;
   } else if ( compareDigits(state.digits, "[  ]") ) {
     static uint8_t oldBattery = 0;
-    static unsigned long lastChargeUpdate = 0;
-    unsigned long time = millis();
-    if ( (state.battery > oldBattery) || ((time-lastChargeUpdate) < 5000) ) {
+    if ( (state.battery > oldBattery) || delta < 5000 ) {
       state.mode = LX790_CHARGING;
       state.msg = "Laden ...";
        if (state.battery > oldBattery)
-        lastChargeUpdate = time; 
+        lastModeUpdate = time; 
     } else {
       state.mode = LX790_DOCKED;
       state.msg = "in Ladestation";
     }
     oldBattery = state.battery;
+  } else if ( state.digits[0] == 'A' ) {
+    static uint8_t oldBattery = 0;
+    state.mode = LX790_SET_AREA;
+    state.msg = "Fläche einstellen";
   } else { // try to decode text
     for (int i = 0; LcdToMode[i].Display; i++)
     {
@@ -242,6 +255,44 @@ void decodeDisplay(LX790_State &state) {
     }
 
   }
+
+  if ( !state.lock )
+    unlockPin = true;
+  if ( unlockPin && state.mode == LX790_ENTER_PIN && state.wifi) {
+    // unlock robot if connected to WiFi
+    static int8_t digitPos = 4;
+
+    // set current digit position on start
+    if ( digitPos >= 4 ) {
+      if ( state.digits[0] == '-' ) {
+        digitPos = 0;
+      }
+    }
+
+    // key in current digit
+    if ( digitPos < 4 && state.digits[digitPos] != '-' 
+          && (uxQueueMessagesWaiting(cmdQueue) == 0) ) {
+      if ( state.digits[digitPos] < PIN[digitPos] ) {
+        // send '+' button
+        queueButton(BTN_START);
+      } else if ( state.digits[digitPos] > PIN[digitPos] ) {
+        // send '-' button
+        queueButton(BTN_HOME);
+      } else {
+        // send OK
+        queueButton(BTN_OK);
+        CMD_Type cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);        
+        digitPos++;
+        if ( digitPos==4 ) {
+          unlockPin = false;
+        }
+      }
+
+    }
+
+
+  }
+
 }
 
 void queueButton(BUTTONS btn, int delay) {

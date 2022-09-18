@@ -71,10 +71,6 @@ bool handleFileRead(String path) {
         client.setNoDelay(true);
         client.write(file);
         file.close();
-/*        
-        server.streamFile(file, contentType);
-        file.close();
-*/        
         return true;
     }
     return false;
@@ -100,23 +96,24 @@ void handleFileUpload() {
   }
 }
 
-#if 0
 void handleFileDelete() {
   if (server.args() == 0) {
     return server.send(500, "text/plain", "BAD ARGS");
   }
-  String path = server.arg(0);
-  if (path == "/") {
-    return server.send(500, "text/plain", "BAD PATH");
+  String path = "/"+server.arg(0);
+  if ( path.indexOf("..") >= 0 ) {
+    // security alert -> trying to exit web root
+    return server.send(500, "text/plain", "BAD ARGS");
   }
-  if (!exists(path)) {
-    return server.send(404, "text/plain", "FileNotFound");
+  if (!SPIFFS.exists(path)) {
+    return server.send(404, "text/plain", path + " not found");
   }
   SPIFFS.remove(path);
-  server.send(200, "text/plain", "");
+  server.send(200, "text/plain", path + " deleted");
   path = String();
 }
 
+#if 0
 void handleFileCreate() {
   if (server.args() == 0) {
     return server.send(500, "text/plain", "BAD ARGS");

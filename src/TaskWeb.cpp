@@ -9,6 +9,9 @@
 #include <Update.h>
 #include "LX790_util.h"
 
+static const char* StatusFiles[] = {"/status.log", "/status1.log", "/status2.log"};
+static const uint8_t StatusFilesCount = 3;
+static const uint16_t StatusLinesCount = 500;
 
 // Copy "config_sample.h" to "config.h" and change it according to your setup.
 #include "config.h"
@@ -26,19 +29,16 @@ String getContentType(String filename);
 bool exists(String path);
 bool handleFileRead(String path);
 void handleFileUpload();
-void handleFileList();
+void handleFileDelete();
 
-// Request:   http://MOWERADRESS/web
-// Response:  [cnt];[Display];[point];[lock];[clock];[bat];[rssi dbm];[Cnt_timeout];[Cnt_err];[LstError];[MowerStatustext]
-void Web_aktStatusWeb()
-{
+const char *jsonStatus() {
   sprintf(out, "{\"runtime\":%0.1f,"
                   "\"segments\":[%d,%d,%d,%d],"
                   "\"digits\":\"%c%c%c%c\","
                   "\"point\":\"%c\","
-                  "\"lock\":%d, \"clock\":%d, \"wifi\":%d,"
-                  "\"battery\":%d, \"brightness\":%d,"
-                  "\"mode\": \"%s\","
+                  "\"lock\":%d,\"clock\":%d,\"wifi\":%d,"
+                  "\"battery\":%d,\"brightness\":%d,"
+                  "\"mode\":\"%s\","
                   "\"cmdQueue\":%d,"
                   "\"rssi\":%d,"
                   "\"msg\":\"%s\","
@@ -50,12 +50,40 @@ void Web_aktStatusWeb()
     state.lock, state.clock, state.wifi,
     state.battery, state.brightness,
     ModeNames[state.mode],
-    state.cmdQueueActive,
+    uxQueueMessagesWaiting(cmdQueue),
     WiFi.RSSI(),
     state.msg,
     __DATE__, __TIME__);
-    
-  server.send(200,"text/json", out);
+
+  return out;
+}
+
+void Web_getLog()
+{
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "text/json", "");
+  server.sendContent("[");
+
+  for (int i = StatusFilesCount-1; i >= 0; i--) {
+    File file = SPIFFS.open(StatusFiles[i], "r");
+    if ( file ) {
+      String line = file.readStringUntil('\n');
+      while ( !line.isEmpty() ) {
+        server.sendContent(line);
+        line = file.readStringUntil('\n');
+      }
+      file.close();
+    }
+  }
+  server.sendContent("{}]");
+  server.sendContent("");
+}
+
+// Request:   http://MOWERADRESS/web
+// Response:  [cnt];[Display];[point];[lock];[clock];[bat];[rssi dbm];[Cnt_timeout];[Cnt_err];[LstError];[MowerStatustext]
+void Web_aktStatusWeb()
+{
+  server.send(200,"text/json", jsonStatus());
 }
 
 //Webcommand examples: 
@@ -70,7 +98,9 @@ void Web_getCmd()
     int val = server.arg(1).toInt();
     CMD_Type cmd;
 
-    if (server.arg(0) == "workzone" && val) {
+    if (server.arg(0) == "reboot" && val) {
+      cmd = {CMD_Type::REBOOT, 200}; xQueueSend(cmdQueue, &cmd, 0);
+    } else if (server.arg(0) == "workzone" && val) {
       queueButton(BTN_OK, 3500);
     } else if (server.arg(0) == "timedate" && val) {
       queueButton(BTN_START, 3500);
@@ -95,6 +125,8 @@ void Web_getCmd()
       cmd = {CMD_Type::BTN_RELEASE, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
       cmd = {CMD_Type::BTN_RELEASE, BTN_STOP}; xQueueSend(cmdQueue, &cmd, 0);
     } else {
+      // @todo prioritize emergency stop !!!
+
       for (int i=1; ButtonNames[i]; i++)
       {
         if (server.arg(0) == ButtonNames[i])
@@ -109,7 +141,6 @@ void Web_getCmd()
           break;
         }
       }
-    state.cmdQueueActive = 1;
     }
   }
   else
@@ -176,9 +207,10 @@ void TaskWeb( void * pvParameters )
     File root = SPIFFS.open("/");
     File file = root.openNextFile();
     while(file) {
-      sprintf(out, "<li>%s (%s)</li>",
-        file.name(),
-        formatBytes(file.size()).c_str()
+      sprintf(out, "<li><a href='%s'>%s</a> (%s)  <b><a href='del?file=%s'>X</a></b></li>",
+        file.name(), file.name(),
+        formatBytes(file.size()).c_str(),
+        file.name()
       );
       server.sendContent(out);
       file = root.openNextFile();
@@ -202,6 +234,8 @@ void TaskWeb( void * pvParameters )
 
   server.on("/cmd", HTTP_GET, Web_getCmd);
   server.on("/web", HTTP_GET, Web_aktStatusWeb);
+  server.on("/log", HTTP_GET, Web_getLog);
+  server.on("/del", HTTP_GET, handleFileDelete);
 
   server.enableCORS(true);
   server.begin();
@@ -213,9 +247,26 @@ void TaskWeb( void * pvParameters )
 
     // sync state
     if ( xQueueReceive(stateQueue, &state, 0) == pdPASS ) {
-    }
+      
+      // save to log
+      File file = SPIFFS.open(StatusFiles[0], "a");
+      if ( file ) {
+        file.print( jsonStatus() ); file.println(",");
+        size_t filesize = file.size();
+        file.close();
 
+        // rotate log file
+        if ( filesize > (250*StatusLinesCount) ) {
+          for (int i = (StatusFilesCount-1); i > 0; i--) {
+            SPIFFS.remove(StatusFiles[i]);
+            SPIFFS.rename(StatusFiles[i-1], StatusFiles[i]);
+          }
+        }
+      }
+
+    }
 
     delay(10);
   }
+
 }

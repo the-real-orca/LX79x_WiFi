@@ -20,20 +20,21 @@ R"(
       if ( espUpdate.files[0] ) {
         formdata.append('file', espUpdate.files[0]);
         var ajax = new XMLHttpRequest();
-        ajax.upload.addEventListener('espProgress', ()=>{
+        ajax.upload.addEventListener('progress', ()=>{
           var percent = Math.round((event.loaded / event.total) * 100);
           document.getElementById('espProgress').textContent = percent + '% uploading ...';
-        }, false);
+         }, false);
         ajax.addEventListener('load', ()=>{
           document.getElementById('espProgress').textContent = 'upload finished';
-          alert('Upload Finished');          
+          alert('Upload Finished');
+          espUpdate.value = null;
         }, false);
         ajax.addEventListener('error', errorHandler, false);
         ajax.addEventListener('abort', errorHandler, false);
-        ajax.open('POST', '/execupdate');
+        ajax.open('POST', 'execupdate');
         ajax.send(formdata);
       } else {
-        alert('Please select a new ESP firmware (*.bin)!');
+        alert('Please select a new ESP32 firmware (*.bin)!');
       }
     }
 
@@ -42,13 +43,14 @@ R"(
       if ( fileupload.files[0] ) {
         formdata.append('file', fileupload.files[0]);
         var ajax = new XMLHttpRequest();
-        ajax.upload.addEventListener('fileProgress', ()=>{
+        ajax.upload.addEventListener('progress', ()=>{
           var percent = Math.round((event.loaded / event.total) * 100);
           document.getElementById('fileProgress').textContent = percent + '% uploading ...';
         }, false);
         ajax.addEventListener('load', ()=>{
           document.getElementById('fileProgress').textContent = 'upload finished';
           alert('Upload Finished');          
+          fileupload.value = null;
         }, false);
         ajax.addEventListener('error', errorHandler, false);
         ajax.addEventListener('abort', errorHandler, false);
@@ -78,7 +80,8 @@ R"(
   <h2>Filesystem</h2>
   <div>
     <input id='fileupload' type='file'>
-    <button onclick='uploadFile()'>Update</button>
-    <span id='fileProgress'></span>
+    <button onclick='uploadFile()'>Upload</button>
+    <i id='fileProgress'></i>
   </div>
+
 )"

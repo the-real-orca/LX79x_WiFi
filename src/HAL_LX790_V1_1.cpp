@@ -56,7 +56,7 @@ void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
   state.clock = bitRead(raw[0*2], 4) | bitRead(raw[1*2], 4);
 
   // wifi
-  state.wifi = bitRead(raw[2*2], 4) | bitRead(raw[3*2], 4);
+  // wifi is output / state.wifi = bitRead(raw[2*2], 4) | bitRead(raw[3*2], 4);
 
   // lock
   state.lock = bitRead(raw[4*2], 4) | bitRead(raw[5*2], 4);

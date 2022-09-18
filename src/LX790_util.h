@@ -24,7 +24,6 @@ typedef struct {
   uint8_t brightness;
   LX790_Mode mode;
   bool updated;
-  uint8_t cmdQueueActive;
   const char *msg;
 } LX790_State;
 // LX790 State TaskHW --> TaskWeb

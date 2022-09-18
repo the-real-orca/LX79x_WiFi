@@ -82,27 +82,15 @@ void TaskHW( void * pvParameters )
     // do HW communication
     HAL_loop(state);
 
-    // sync state
-    if ( state.updated || ( (time - lastStateUpdate) > 2000) ) {
-      lastStateUpdate = time;
-      decodeDisplay(state);
-
-      xQueueSend(stateQueue, &state, 0);
-      state.updated = false;
-    }
-
     // handle command queue
     if ( !cmd.cmd ) {
       // get next command if we have no active command handled
       if ( xQueueReceive(cmdQueue, &cmd, 0) == pdPASS ) {
         cmdStart = time;
-        state.cmdQueueActive = 1;
+        state.updated = true;
       } else {
         cmd.cmd = CMD_Type::NA;
-        state.cmdQueueActive = 0;
       }
-    } else {
-      state.cmdQueueActive = 1;
     }
     switch ( cmd.cmd ) {
       case CMD_Type::NA:
@@ -133,6 +121,15 @@ void TaskHW( void * pvParameters )
         HAL_buttonRelease(static_cast<BUTTONS>(cmd.param));
         cmd.cmd = CMD_Type::NA;
         break;
+    }
+
+    // sync state
+    if ( state.updated || ( (time - lastStateUpdate) > 2000) ) {
+      lastStateUpdate = time;
+      decodeDisplay(state);
+
+      xQueueSend(stateQueue, &state, 0);
+      state.updated = false;
     }
 
     delay(5);
