@@ -2,6 +2,7 @@
 #include <string.h>
 #include <WiFi.h>
 #include "LX790_util.h"
+#include "EEPROM.h"
 
 #include "config.h"
 #ifndef SSID
@@ -34,7 +35,13 @@ void TaskHW( void * pvParameters )
   unsigned long lastStateUpdate = 0;
   memset(&state, 0x00, sizeof state);
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
-  state.msg = "";  
+  state.msg = "";
+
+  EEPROM.begin(EEPROM_SIZE);
+  state.autoUnlock = EEPROM.readBool(EEPROM_autoUnlock);
+  state.debugLog = EEPROM.readBool(EEPROM_debugLog);
+
+
   HAL_setup();
   state.updated = true;
 
@@ -119,6 +126,24 @@ void TaskHW( void * pvParameters )
 
       case CMD_Type::BTN_RELEASE:
         HAL_buttonRelease(static_cast<BUTTONS>(cmd.param));
+        cmd.cmd = CMD_Type::NA;
+        break;
+
+      case CMD_Type::DEBUGLOG:
+        if ( state.debugLog != cmd.param ) {
+          state.debugLog = cmd.param;
+          EEPROM.writeBool(EEPROM_debugLog, state.debugLog);
+          EEPROM.commit();
+        }
+        cmd.cmd = CMD_Type::NA;
+        break;
+
+      case CMD_Type::AUTOUNLOCK:
+        if ( state.autoUnlock != cmd.param ) {
+          state.autoUnlock = cmd.param;
+          EEPROM.writeBool(EEPROM_autoUnlock, state.autoUnlock);
+          EEPROM.commit();
+        }
         cmd.cmd = CMD_Type::NA;
         break;
     }

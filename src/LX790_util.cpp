@@ -86,9 +86,18 @@ struct
   {"^^^^", LX790_BLOCKED, "Mähen... Hindernis..."},
   {"Pin1", LX790_SET_PIN, "neuen Pin eingeben"},
   {"Pin2", LX790_SET_PIN, "neuen Pin bestätigen"},
+  {"A 50", LX790_SET_AREA, "Fläche einstellen (Di, Fr: 9:00-9:30)"},
+  {"A100", LX790_SET_AREA, "Fläche einstellen (Di, Fr: 9:00-9:45)"},
+  {"A150", LX790_SET_AREA, "Fläche einstellen (Mo, Mi, Fr: 9:00-9:45)"},
+  {"A200", LX790_SET_AREA, "Fläche einstellen (Mo-Fr: 9:00-9:45)"},
+  {"A300", LX790_SET_AREA, "Fläche einstellen (Mo-Fr: 9:00-10:00)"},
+  {"A400", LX790_SET_AREA, "Fläche einstellen (Mo-Fr: 9:00-10:15)"},
+  {"A500", LX790_SET_AREA, "Fläche einstellen (Mo-Fr: 9:00-10:45)"},
+  {"A600", LX790_SET_AREA, "Fläche einstellen (Mo-Fr: 9:00-11:00)"},
   {" USB", LX790_USB,     "USB Stick erkannt"},
   {nullptr, LX790_UNKNOWN, ""}
 };
+
 
 /*
 ER:50	Error updating main cpu firmware (.pck)
@@ -239,10 +248,6 @@ void decodeDisplay(LX790_State &state) {
       state.msg = "in Ladestation";
     }
     oldBattery = state.battery;
-  } else if ( state.digits[0] == 'A' ) {
-    static uint8_t oldBattery = 0;
-    state.mode = LX790_SET_AREA;
-    state.msg = "Fläche einstellen";
   } else { // try to decode text
     for (int i = 0; LcdToMode[i].Display; i++)
     {
@@ -256,11 +261,11 @@ void decodeDisplay(LX790_State &state) {
 
   }
 
-  if ( !state.lock )
-    unlockPin = true;
-  if ( unlockPin && state.mode == LX790_ENTER_PIN && state.wifi) {
+  if ( unlockPin && state.autoUnlock &&
+        state.mode == LX790_ENTER_PIN && state.wifi) {
     // unlock robot if connected to WiFi
     static int8_t digitPos = 4;
+    state.msg = "automatische Pin Eingabe";
 
     // set current digit position on start
     if ( digitPos >= 4 ) {

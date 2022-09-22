@@ -13,6 +13,10 @@ static const char* ModeNames[] = {"LX790_UNKNOWN", "LX790_POWER_UP", "LX790_ENTE
         "LX790_SET_PIN", "LX790_SET_DATE", "LX790_SET_TIME", "LX790_SET_AREA",
         "LX790_RAIN", "LX790_ERROR"};
 
+#define EEPROM_debugLog 0
+#define EEPROM_autoUnlock 1
+#define EEPROM_SIZE 2
+
 typedef struct {
   uint8_t segments[4];
   char digits[4];
@@ -24,15 +28,18 @@ typedef struct {
   uint8_t brightness;
   LX790_Mode mode;
   bool updated;
+  bool autoUnlock;
+  bool debugLog;
   const char *msg;
 } LX790_State;
 // LX790 State TaskHW --> TaskWeb
 extern QueueHandle_t stateQueue;
 
+
 typedef enum {BTN_NA = 0, BTN_IO, BTN_START, BTN_HOME, BTN_OK, BTN_STOP} BUTTONS;
 static const char* ButtonNames[] = {"n/a", "io", "start", "home", "ok", "stop", nullptr};
 typedef struct {
-  enum {NA = 0, BTN_PRESS, BTN_RELEASE, WAIT, REBOOT} cmd;
+  enum {NA = 0, BTN_PRESS, BTN_RELEASE, WAIT, REBOOT, AUTOUNLOCK, DEBUGLOG} cmd;
   signed int param;
 } CMD_Type;
 // LX790 Commands TaskWeb --> TaskHW

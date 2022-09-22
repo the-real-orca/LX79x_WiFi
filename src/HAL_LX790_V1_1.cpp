@@ -92,7 +92,8 @@ void HAL_setup()
   // init HW Communication
   tm1668.setDataMode(SPI_MODE1);
   tm1668.setSlaveFlags(SPI_SLAVE_BIT_LSBFIRST);
-  tm1668.begin(HSPI);
+  tm1668.begin(VSPI, CLK_PIN_DISPLAY, VSPI_MISO, DIO_PIN_DISPLAY, CS_PIN_DISPLAY);
+//  tm1668.begin(HSPI);
 
   pinMode(CS_PIN_DISPLAY, INPUT);
   pinMode(DIO_PIN_DISPLAY, INPUT);

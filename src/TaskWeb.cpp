@@ -32,16 +32,18 @@ void handleFileUpload();
 void handleFileDelete();
 
 const char *jsonStatus() {
-  sprintf(out, "{\"runtime\":%0.1f,"
-                  "\"segments\":[%d,%d,%d,%d],"
-                  "\"digits\":\"%c%c%c%c\","
-                  "\"point\":\"%c\","
-                  "\"lock\":%d,\"clock\":%d,\"wifi\":%d,"
-                  "\"battery\":%d,\"brightness\":%d,"
-                  "\"mode\":\"%s\","
-                  "\"cmdQueue\":%d,"
-                  "\"rssi\":%d,"
-                  "\"msg\":\"%s\","
+  sprintf(out, "{\"runtime\":%0.1f, "
+                  "\"segments\":[%d,%d,%d,%d], "
+                  "\"digits\":\"%c%c%c%c\", "
+                  "\"point\":\"%c\", "
+                  "\"lock\":%d, \"clock\":%d, \"wifi\":%d, "
+                  "\"battery\":%d, \"brightness\":%d, "
+                  "\"mode\":\"%s\", "
+                  "\"cmdQueue\":%d, "
+                  "\"rssi\":%d, "
+                  "\"msg\":\"%s\", "
+                  "\"autoUnlock\":%d, "
+                  "\"debugLog\":%d, "
                   "\"build\":\"%s %s\"}",
     millis()/1000.0,
     state.segments[0],state.segments[1],state.segments[2],state.segments[3],
@@ -53,6 +55,7 @@ const char *jsonStatus() {
     uxQueueMessagesWaiting(cmdQueue),
     WiFi.RSSI(),
     state.msg,
+    state.autoUnlock, state.debugLog,
     __DATE__, __TIME__);
 
   return out;
@@ -98,38 +101,42 @@ void Web_getCmd()
     int val = server.arg(1).toInt();
     CMD_Type cmd;
 
-    if (server.arg(0) == "reboot" && val) {
+    if (param == "reboot" && val) {
       cmd = {CMD_Type::REBOOT, 200}; xQueueSend(cmdQueue, &cmd, 0);
-    } else if (server.arg(0) == "workzone" && val) {
-      queueButton(BTN_OK, 3500);
-    } else if (server.arg(0) == "timedate" && val) {
-      queueButton(BTN_START, 3500);
-    } else if (server.arg(0) == "startmow" && val) {
+    } else if (param == "startmow" && val) {
       queueButton(BTN_START, 250);
       cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);
       queueButton(BTN_OK, 250);
-    } else if (server.arg(0) == "homemow" && val) {
+    } else if (param == "homemow" && val) {
       queueButton(BTN_HOME, 250);
       cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);
       queueButton(BTN_OK, 250);
-    } else if (server.arg(0) == "setpin" && val) {
+    } else if (param == "workzone" && val) {
+      queueButton(BTN_OK, 4500);
+    } else if (param == "timedate" && val) {
+      queueButton(BTN_START, 4500);
+    } else if (param == "setpin" && val) {
       cmd = {CMD_Type::BTN_PRESS, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
       cmd = {CMD_Type::BTN_PRESS, BTN_HOME}; xQueueSend(cmdQueue, &cmd, 0);
-      cmd = {CMD_Type::WAIT, 5500}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::WAIT, 8000}; xQueueSend(cmdQueue, &cmd, 0);
       cmd = {CMD_Type::BTN_RELEASE, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
       cmd = {CMD_Type::BTN_RELEASE, BTN_HOME}; xQueueSend(cmdQueue, &cmd, 0);
-    } else if (server.arg(0) == "setstarttime" && val) {
+    } else if (param == "setstarttime" && val) {
       cmd = {CMD_Type::BTN_PRESS, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
       cmd = {CMD_Type::BTN_PRESS, BTN_STOP}; xQueueSend(cmdQueue, &cmd, 0);
-      cmd = {CMD_Type::WAIT, 5500}; xQueueSend(cmdQueue, &cmd, 0);
+      cmd = {CMD_Type::WAIT, 8000}; xQueueSend(cmdQueue, &cmd, 0);
       cmd = {CMD_Type::BTN_RELEASE, BTN_START}; xQueueSend(cmdQueue, &cmd, 0);
       cmd = {CMD_Type::BTN_RELEASE, BTN_STOP}; xQueueSend(cmdQueue, &cmd, 0);
+    } else if (param == "debugLog") {
+      cmd = {CMD_Type::DEBUGLOG, val}; xQueueSend(cmdQueue, &cmd, 0);
+    } else if (param == "autoUnlock") {
+      cmd = {CMD_Type::AUTOUNLOCK, val}; xQueueSend(cmdQueue, &cmd, 0);
     } else {
       // @todo prioritize emergency stop !!!
 
       for (int i=1; ButtonNames[i]; i++)
       {
-        if (server.arg(0) == ButtonNames[i])
+        if (param == ButtonNames[i])
         {
           if ( val > 1 ) {
             queueButton(static_cast<BUTTONS>(i), val);
@@ -181,7 +188,7 @@ void TaskWeb( void * pvParameters )
 {
   memset(&state, 0x00, sizeof state);
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
-  state.msg = "";  
+  state.msg="";  
 
   if(!SPIFFS.begin(true))
     Serial.println(F("init SPIFFS error"));
@@ -249,21 +256,22 @@ void TaskWeb( void * pvParameters )
     if ( xQueueReceive(stateQueue, &state, 0) == pdPASS ) {
       
       // save to log
-      File file = SPIFFS.open(StatusFiles[0], "a");
-      if ( file ) {
-        file.print( jsonStatus() ); file.println(",");
-        size_t filesize = file.size();
-        file.close();
+      if ( state.debugLog ) {
+        File file = SPIFFS.open(StatusFiles[0], "a");
+        if ( file ) {
+          file.print( jsonStatus() ); file.println(",");
+          size_t filesize = file.size();
+          file.close();
 
-        // rotate log file
-        if ( filesize > (250*StatusLinesCount) ) {
-          for (int i = (StatusFilesCount-1); i > 0; i--) {
-            SPIFFS.remove(StatusFiles[i]);
-            SPIFFS.rename(StatusFiles[i-1], StatusFiles[i]);
+          // rotate log file
+          if ( filesize > (250*StatusLinesCount) ) {
+            for (int i = (StatusFilesCount-1); i > 0; i--) {
+              SPIFFS.remove(StatusFiles[i]);
+              SPIFFS.rename(StatusFiles[i-1], StatusFiles[i]);
+            }
           }
         }
       }
-
     }
 
     delay(10);

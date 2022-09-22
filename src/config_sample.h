@@ -18,9 +18,9 @@
  */
 //#define HW_MODEL LX790_V1_0
 #define HW_MODEL LX790_V1_1
-
+#define PIN "0000"
 
 /*
  * Debug
  */
-#define DEBUG_SERIAL_PRINT    1
+#define DEBUG_SERIAL_PRINT    0

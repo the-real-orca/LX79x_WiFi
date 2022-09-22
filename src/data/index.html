@@ -180,8 +180,8 @@
           <button name="reboot" id="btn_reboot" class="button buttonred buttonSmall">ESP32 neu starten</button>
         </p>
         <p>
-          <input type="checkbox" id="chk_autoPIN"><label for="chk_autoPIN">PIN automatisch eingeben</label> (bei verbundenen WLAN)<br>
-          <input type="checkbox" id="chk_debugLog"><label for="chk_debugLog">Log aktiviert</label> --> <a href="/log">Debug Log anzeigen</a> <br>
+          <input type="checkbox" name="autoUnlock" id="chk_autoUnlock"><label for="chk_autoUnlock">PIN automatisch eingeben</label> (bei verbundenen WLAN)<br>
+          <input type="checkbox" name="debugLog" id="chk_debugLog"><label for="chk_debugLog">Debug Log aktiviert</label> &rightarrow; <a href="/log"> Log anzeigen</a> <br>
         </p>
         
         <hr>
@@ -202,13 +202,15 @@
   function onLoad(event) 
   {
     console.log('...init');
+    document.getElementById("toggle_config").addEventListener("click",  ActionConfigToggle);
+
     const btns = document.getElementsByTagName("button");
     for (let i = 0; i < btns.length; i++) {
       initButton(btns[i]);
     }
 
-
-    document.getElementById("toggle_config").addEventListener("click",  ActionConfigToggle);
+    document.getElementById("chk_autoUnlock").addEventListener("click",  ActionCheckbox);
+    document.getElementById("chk_debugLog").addEventListener("click",  ActionCheckbox);
 
     ActValues();
   }
@@ -233,6 +235,15 @@
     xhr.open("GET", "/cmd?parm="+this.name+"&value=0", true);
     xhr.send();
   }  
+  function ActionCheckbox() 
+  {
+    var val = this.checked ? 1 : 0;
+    console.log(this.name + " checked: " + val);
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/cmd?parm="+this.name+"&value="+val, true);
+    xhr.send();
+    // this.indeterminate = true;
+  }    
   function ActValues()
   {
     var xhr = new XMLHttpRequest();
@@ -261,7 +272,16 @@
           status.battery = 4;
         if ( status.battery != oldStatus.battery )
           document.getElementById("bat").src = imgBatArr[status.battery];
-        document.getElementById("msg").textContent = status.msg;
+        document.getElementById("msg").textContent = "- " + status.msg + " -";
+
+        if ( status.debugLog != oldStatus.debugLog ) {
+          document.getElementById("chk_debugLog").checked = status.debugLog;
+          document.getElementById("chk_debugLog").indeterminate = false;
+        }
+        if ( status.autoUnlock != oldStatus.autoUnlock ) {
+          document.getElementById("chk_autoUnlock").checked = status.autoUnlock;
+          document.getElementById("chk_autoUnlock").indeterminate = false;
+        }
 
         if ( status.cmdQueue != oldStatus.cmdQueue ) {
           const btns = document.getElementsByClassName("button");
