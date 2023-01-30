@@ -118,7 +118,7 @@
 
 <body>
   <div class="topnav">
-    <h1>LX79x Mähroboter</h1>
+    <h1 id="hostname">LX79x Mähroboter</h1>
   </div>
   <div class="content">
     <div class="card">
@@ -154,8 +154,8 @@
         <button name="ok" id="btn_ok" class="button">Ok</button>
       </p>
       <p>
-        <button name="startmow" id="btn_startmow" class="button">Mähen start</button>
-        <button name="homemow" id="btn_homemow" class="button">Zur Ladestation</button>
+        <button name="startmow" id="btn_startmow" class="button">Mähen starten</button>
+        <button name="homemow" id="btn_homemow" class="button">zur Ladestation</button>
       </p>
       <p>
         <button name="stop" id="btn_stop" class="button buttonred">Stop</button>
@@ -272,7 +272,10 @@
           status.battery = 4;
         if ( status.battery != oldStatus.battery )
           document.getElementById("bat").src = imgBatArr[status.battery];
+
         document.getElementById("msg").textContent = "- " + status.msg + " -";
+        
+        document.getElementById("hostname").textContent = status.hostname;
 
         if ( status.debugLog != oldStatus.debugLog ) {
           document.getElementById("chk_debugLog").checked = status.debugLog;

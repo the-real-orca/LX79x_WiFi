@@ -30,6 +30,7 @@ typedef struct {
   bool updated;
   bool autoUnlock;
   bool debugLog;
+  const char *hostname;
   const char *msg;
 } LX790_State;
 // LX790 State TaskHW --> TaskWeb

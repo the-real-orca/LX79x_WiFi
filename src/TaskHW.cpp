@@ -36,6 +36,7 @@ void TaskHW( void * pvParameters )
   memset(&state, 0x00, sizeof state);
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
   state.msg = "";
+  state.hostname = hostname;
 
   EEPROM.begin(EEPROM_SIZE);
   state.autoUnlock = EEPROM.readBool(EEPROM_autoUnlock);

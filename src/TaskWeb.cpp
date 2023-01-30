@@ -36,11 +36,11 @@ const char *jsonStatus() {
                   "\"segments\":[%d,%d,%d,%d], "
                   "\"digits\":\"%c%c%c%c\", "
                   "\"point\":\"%c\", "
-                  "\"lock\":%d, \"clock\":%d, \"wifi\":%d, "
+                  "\"lock\":%d, \"clock\":%d, "
                   "\"battery\":%d, \"brightness\":%d, "
                   "\"mode\":\"%s\", "
                   "\"cmdQueue\":%d, "
-                  "\"rssi\":%d, "
+                  "\"wifi\":%d, \"rssi\":%d, \"hostname\":\"%s\", "
                   "\"msg\":\"%s\", "
                   "\"autoUnlock\":%d, "
                   "\"debugLog\":%d, "
@@ -49,11 +49,12 @@ const char *jsonStatus() {
     state.segments[0],state.segments[1],state.segments[2],state.segments[3],
     state.digits[0],state.digits[1],state.digits[2],state.digits[3],
     state.point,
-    state.lock, state.clock, state.wifi,
+    state.lock, state.clock, 
     state.battery, state.brightness,
     ModeNames[state.mode],
     uxQueueMessagesWaiting(cmdQueue),
-    WiFi.RSSI(),
+    state.wifi, WiFi.RSSI(),
+    state.hostname,
     state.msg,
     state.autoUnlock, state.debugLog,
     __DATE__, __TIME__);
