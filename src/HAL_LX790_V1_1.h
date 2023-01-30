@@ -12,6 +12,9 @@
 
 //Hardware  
 
+// ESP32
+// DOIT DEVKIT V1
+
 // SPI pins
 #define HSPI_CS 15
 #define HSPI_CLK 14

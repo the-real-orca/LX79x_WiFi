@@ -2,7 +2,7 @@ LX890 V1.1
 ==========
 
 Display Cable
---------------
+-------------
 
 |                                   | |   |   |                        |
 |---------------------------------:|-:|:-:|:-:|------------------------|
@@ -16,8 +16,8 @@ Display Cable
 **STB** *(CS)* -> D15 #8 (green)    | | 15| 16| **HOME** *(Home Btn)* -> D32 #9 (yellow)
 
 
-Stop Button
------------
+Stop Button Cable
+-----------------
 
  - JIABEN FA7-6K-2100 Trigger switch
  - 5V 1mA
