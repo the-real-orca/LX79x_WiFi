@@ -6,10 +6,10 @@ Display Cable
 
 |                                   | |   |   |                        |
 |---------------------------------:|-:|:-:|:-:|------------------------|
-**3v3**                             | | 1 | 2 | **CLK** -> D14 #2 (brown)
+**3v3** (Opto supply)               | | 1 | 2 | **CLK** -> D14 #2 (brown)
 **SW** *(I/O Btn)* -> Opto -> D27 #- (orange) | | 3 | 4 | **GND** -> GND #3 (black)
 **5V** -> Vin #1 (red)              | | 5 | 6 | **DIO** *(Data)* -> D13 #4 (white)
-**BUZ**                         |**[**| 7 | 8 | **GND**
+**BUZ**                         |**[**| 7 | 8 | **GND** (Opto supply)
 **ST1** *(Stop)* --> **ST2**    |**[**| 9 | 10| **SDA** *(I2C)*
 *(Stop)* -> D26 #5 (gray)           | | 11| 12| **STR** *(Start Btn)* -> D25 #6 (violet)
 **OK** *(OK Btn)* -> D33 #7 (blue)  | | 13| 14| **SCL** *(I2C)*

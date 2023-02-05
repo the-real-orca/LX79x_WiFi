@@ -37,13 +37,8 @@
     padding-top: 10px;
     padding-bottom: 20px;
   }
-  .config {
-    background-color: #e0e0e0;
-    padding-top: 5px;
-    padding-bottom: 10px;
-  }
-  #toggle_config {
-    font-size: x-large; 
+  .toggle_card {
+    font-size: 150%; 
     text-align: right;
     padding: 0px 20px;
     -webkit-touch-callout: none;
@@ -53,6 +48,11 @@
     -ms-user-select: none;
     user-select: none;
    }  
+   .secondary {
+    background-color: #e0e0e0;
+    padding-top: 5px;
+    padding-bottom: 10px;
+  }
   .button {
     display: inline-block;
     padding: 15px 30px;
@@ -162,10 +162,8 @@
       </p>
     </div>
     <br>
-    <div class="card config">
-      <div id="toggle_config">
-        &#x1F6E0;
-      </div>
+    <div class="card secondary">
+      <div id="toggle_config" class="toggle_card">&#x1F6E0;</div>
       <div id="config" class="hide">
         <p>
           <button name="workzone" id="btn_workzone" class="button buttonSmall">Arbeitsbereich</button>
@@ -175,21 +173,26 @@
           <button name="setpin" id="btn_setpin" class="button buttonSmall">Pin</button>
           <button name="setstarttime" id="btn_setstarttime" class="button buttonSmall">Startzeit</button>
         </p>
+        <hr>
         <p>
           <a href="update" class="button buttonSmall">ESP32 aktualisieren</a>
           <button name="reboot" id="btn_reboot" class="button buttonred buttonSmall">ESP32 neu starten</button>
         </p>
+        <hr>
         <p>
           <input type="checkbox" name="autoUnlock" id="chk_autoUnlock"><label for="chk_autoUnlock">PIN automatisch eingeben</label> (bei verbundenen WLAN)<br>
           <input type="checkbox" name="debugLog" id="chk_debugLog"><label for="chk_debugLog">Debug Log aktiviert</label> &rightarrow; <a href="/log"> Log anzeigen</a> <br>
         </p>
-        
-        <hr>
-        <div id="status" style="font-size:12px; color:grey">status ...</div>
       </div>
-
     </div>
-  <br>
+    <br>
+    <div class="card secondary" >
+      <div id="toggle_status" class="toggle_card" style="font-size: 80%;"><b>&lt;/&gt;</b></div>
+      <div id="status" class="hide">
+        <p style="color:grey">status ...</p>
+      </div>
+    </div>
+    <br>
   </div>
 
   <script>
@@ -203,6 +206,7 @@
   {
     console.log('...init');
     document.getElementById("toggle_config").addEventListener("click",  ActionConfigToggle);
+    document.getElementById("toggle_status").addEventListener("click",  ActionStatusToggle);
 
     const btns = document.getElementsByTagName("button");
     for (let i = 0; i < btns.length; i++) {
@@ -302,6 +306,10 @@
   function ActionConfigToggle()
   {
     document.getElementById("config").classList.toggle('hide');
+  }
+  function ActionStatusToggle()
+  {
+    document.getElementById("status").classList.toggle('hide');
   }
   </script>
 </body>

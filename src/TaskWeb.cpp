@@ -7,6 +7,8 @@
 #include <WebServer.h>
 #include "SPIFFS.h"
 #include <Update.h>
+#define EZTIME_EZT_NAMESPACE
+#include <ezTime.h>
 #include "LX790_util.h"
 
 static const char* StatusFiles[] = {"/status.log", "/status1.log", "/status2.log"};
@@ -32,7 +34,14 @@ void handleFileUpload();
 void handleFileDelete();
 
 const char *jsonStatus() {
-  sprintf(out, "{\"runtime\":%0.1f, "
+
+  //  handle NTP time
+  String utcStr="---";
+  if ( ezt::timeStatus() == timeStatus_t::timeSet )
+    utcStr = UTC.dateTime("Y-m-d H:i:s T");
+
+  sprintf(out, "{\"time\":\"%s\", "
+                  "\"runtime\":%0.1f, "
                   "\"segments\":[%d,%d,%d,%d], "
                   "\"digits\":\"%c%c%c%c\", "
                   "\"point\":\"%c\", "
@@ -45,6 +54,7 @@ const char *jsonStatus() {
                   "\"autoUnlock\":%d, "
                   "\"debugLog\":%d, "
                   "\"build\":\"%s %s\"}",
+    utcStr.c_str(),
     millis()/1000.0,
     state.segments[0],state.segments[1],state.segments[2],state.segments[3],
     state.digits[0],state.digits[1],state.digits[2],state.digits[3],
@@ -274,6 +284,9 @@ void TaskWeb( void * pvParameters )
         }
       }
     }
+
+    // handle NTP
+    ezt::events();
 
     delay(10);
   }
