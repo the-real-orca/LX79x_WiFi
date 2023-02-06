@@ -4,6 +4,7 @@
  */
 
 #include "config.h"
+#ifdef HW_MODEL
 #if HW_MODEL == LX790_V1_0
 
 #include "LX790_util.h"
@@ -58,6 +59,7 @@
 #define BTN_BYTE1_HOME        0x04
 #define BTN_BYTE2_STOP        0xFC
 
+#endif
 #endif
 
 //  Landxcape LX790

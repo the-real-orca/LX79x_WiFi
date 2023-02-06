@@ -17,6 +17,16 @@
  *   -- 4 --
  */
 
+#ifndef SEG1
+  #define SEG1 0
+  #define SEG2 0
+  #define SEG3 0
+  #define SEG4 0
+  #define SEG5 0
+  #define SEG6 0
+  #define SEG7 0
+#endif
+
 struct
 {
   const char c;
@@ -261,6 +271,7 @@ void decodeDisplay(LX790_State &state) {
 
   }
 
+  #ifdef PIN
   if ( unlockPin && state.autoUnlock &&
         state.mode == LX790_ENTER_PIN && state.wifi) {
     // unlock robot if connected to WiFi
@@ -292,11 +303,14 @@ void decodeDisplay(LX790_State &state) {
           unlockPin = false;
         }
       }
-
     }
-
-
   }
+  #else
+  if ( state.autoUnlock && state.mode == LX790_ENTER_PIN ) {
+    // unlock robot if connected to WiFi
+    state.msg = "Pin nicht definiert";
+  }
+  #endif
 
 }
 

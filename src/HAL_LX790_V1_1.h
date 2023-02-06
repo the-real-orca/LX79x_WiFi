@@ -6,6 +6,7 @@
  */
 
 #include "config.h"
+#ifdef HW_MODEL
 #if HW_MODEL == LX790_V1_1
 
 #include "LX790_util.h"
@@ -67,4 +68,5 @@
 #define BTN_PIN_OK    33	// Cable #13
 #define BTN_PIN_STOP  26	// Cable #9 & #11
 
+#endif
 #endif

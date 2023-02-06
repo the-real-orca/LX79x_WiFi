@@ -1,4 +1,5 @@
 #include "config.h"
+#ifdef HW_MODEL
 #if HW_MODEL == LX790_V1_0
 
 #include <Wire.h>
@@ -463,4 +464,5 @@ void HAL_loop(LX790_State &state) {
 }
 
 
+#endif
 #endif

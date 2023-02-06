@@ -11,7 +11,11 @@
 
 //WiFI is set in "config.h"
 const char* ssid     = SSID;
-const char* password = PASSWORD;
+#ifdef PASSWORD
+  const char* password = PASSWORD;
+#else
+  const char* password = "";
+#endif
 const char* hostname = HOSTNAME;
 
 extern TaskHandle_t hTaskHW;
