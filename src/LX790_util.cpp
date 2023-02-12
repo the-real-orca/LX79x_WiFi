@@ -239,10 +239,12 @@ void decodeDisplay(LX790_State &state) {
     if ( state.digits[3]=='-' )
       lastModeUpdate = time; 
   } else if ( compareDigits(state.digits, "    ") ) {
-    if ( state.clock || state.battery ) {
-      state.mode = LX790_SLEEP;
+    if ( (state.clock || state.battery) && state.mode != LX790_OFF ) {
+      state.mode = LX790_STANDBY;
+      state.msg = "standby";
     } else {
       state.mode = LX790_OFF;
+      memcpy(state.digits, " OFF", 4);
       state.msg = "ausgeschalten";
     }
     unlockPin = true;
