@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include <string.h>
 #include <WiFi.h>
+#include <DNSServer.h>
+#include <mDNS.h>
+
 #include "LX790_util.h"
 #include "EEPROM.h"
 
@@ -20,6 +23,7 @@ const char* hostname = HOSTNAME;
 
 extern TaskHandle_t hTaskHW;
 extern TaskHandle_t hTaskWeb;
+DNSServer dnsServer;
 
 #include "HAL_LX790.h"
 
@@ -29,10 +33,9 @@ void TaskHW( void * pvParameters )
 
   // init WiFi
   bool  WiFiConnected = false;
-  unsigned long lastWifiUpdate = 0;
-  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+  unsigned long lastWifiUpdate = -10000;
+  // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE); 
   WiFi.setHostname(hostname);
-  WiFi.begin(ssid, password);
 
   // init HW Communication
   LX790_State state;
@@ -61,6 +64,49 @@ void TaskHW( void * pvParameters )
     // check WLAN state
     wl_status_t wifiStatus = WiFi.status();
     state.wifi = (wifiStatus == WL_CONNECTED);
+
+#define CAPTIVE_PORTAL true
+#ifdef CAPTIVE_PORTAL
+    if ( WiFiConnected )
+    {
+      if ( (time - lastWifiUpdate) > 5000)
+      {
+        lastWifiUpdate = time;
+
+        if (wifiStatus != WL_CONNECTED)
+        {
+          WiFiConnected = false;
+          Serial.println(F("WiFi reconnect.."));
+          dnsServer.stop();
+          WiFi.softAPdisconnect();
+        }
+      }
+    }
+    else
+    {
+      if (wifiStatus == WL_CONNECTED) 
+      {
+        Serial.print("AP IP address: "); Serial.println(WiFi.softAPIP());
+
+        // Setup the DNS server redirecting all the domains
+        dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+        dnsServer.start(53, "*", WiFi.softAPIP());
+        WiFiConnected = true;
+      }
+      else if ( (time - lastWifiUpdate) > 5000)
+      {   
+        // start AP
+        Serial.println(F("start AP.."));
+        WiFi.begin();
+        WiFi.softAP(hostname);
+        lastWifiUpdate = time;
+      }
+    }
+  
+    // handle DNS
+    dnsServer.processNextRequest();
+
+#else
     if ( WiFiConnected )
     {
       if ( (time - lastWifiUpdate) > 5000)
@@ -72,7 +118,6 @@ void TaskHW( void * pvParameters )
           WiFiConnected = false;
           Serial.println(F("WiFi reconnect.."));
           WiFi.disconnect();
-          WiFi.begin(ssid, password);
         }
       }
     }
@@ -84,12 +129,14 @@ void TaskHW( void * pvParameters )
         Serial.print  (F("WiFi successfully connected with IP: "));
         Serial.println(WiFi.localIP());
       }
-      else if ( (time - lastWifiUpdate) > 1000)
+      else if ( (time - lastWifiUpdate) > 4000)
       {
         lastWifiUpdate = time;
         Serial.println(F("WiFi connect.."));
+        WiFi.begin(ssid, password);
       }
     }
+#endif
 
     // do HW communication
     HAL_loop(state);

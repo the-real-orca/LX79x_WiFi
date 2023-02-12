@@ -26,6 +26,38 @@ const char *UPDATE_HTML =
   #include "update.html.h"
 ;
 
+boolean isIp(String str) {
+  for (size_t i = 0; i < str.length(); i++) {
+    int c = str.charAt(i);
+    if (c != '.' && (c < '0' || c > '9')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+String toStringIp(IPAddress ip) {
+  String res = "";
+  for (int i = 0; i < 3; i++) {
+    res += String((ip >> (8 * i)) & 0xFF) + ".";
+  }
+  res += String(((ip >> 8 * 3)) & 0xFF);
+  return res;
+}
+
+// checks if the request is for the controllers IP, if not we redirect automatically to the captive portal 
+boolean captivePortal() {
+  if (!isIp(server.hostHeader())) {
+    Serial.println("Request redirected to captive portal");
+    server.sendHeader("Location", String("http://") + toStringIp(server.client().localIP()) + String("/update"), true);
+    server.send(302, "text/plain", "");   
+    server.client().stop(); 
+    return true;
+  }
+  return false;
+}
+
+
 String formatBytes(size_t bytes);
 String getContentType(String filename);
 bool exists(String path);
@@ -206,14 +238,18 @@ void TaskWeb( void * pvParameters )
 
   // redirect root to index.html
   server.on("/", HTTP_GET, [](){
-      if(!handleFileRead("/index.html"))
-          server.send(404, "text/plain", "FileNotFound");
+    if(!handleFileRead("/index.html"))
+        server.send(404, "text/plain", "FileNotFound");
   });
 
   // serve all files on SPIFFS
   server.onNotFound([](){
-      if ( !handleFileRead(server.uri()) )
-          server.send(404, "text/plain", "FileNotFound");
+//    Serial.printf("request URL: %s\n", server.uri());
+    if ( captivePortal() )
+      return;
+
+    if ( !handleFileRead(server.uri()) )
+        server.send(404, "text/plain", "FileNotFound");
   });
 
   server.on("/update", HTTP_GET, []() {
