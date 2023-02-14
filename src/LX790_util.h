@@ -30,9 +30,19 @@ typedef struct {
   bool updated;
   bool autoUnlock;
   bool debugLog;
-  const char *hostname;
-  const char *msg;
+  String hostname;
+  String msg;
 } LX790_State;
+
+typedef struct {
+  String ssid;
+  String wifi_pwd;
+  String hostname;
+  char pin[5];
+} LX790_Config;
+
+extern LX790_Config config;
+
 // LX790 State TaskHW --> TaskWeb
 extern QueueHandle_t stateQueue;
 

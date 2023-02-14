@@ -8,24 +8,13 @@
 #include "EEPROM.h"
 
 #include "config.h"
-#ifndef SSID
-  #error "Copy 'config_sample.h' to 'config.h' and change it according to your setup."
-#endif
-
-//WiFI is set in "config.h"
-const char* ssid     = SSID;
-#ifdef PASSWORD
-  const char* password = PASSWORD;
-#else
-  const char* password = "";
-#endif
-const char* hostname = HOSTNAME;
 
 extern TaskHandle_t hTaskHW;
 extern TaskHandle_t hTaskWeb;
 DNSServer dnsServer;
 
 #include "HAL_LX790.h"
+
 
 void TaskHW( void * pvParameters )
 {
@@ -35,7 +24,7 @@ void TaskHW( void * pvParameters )
   bool  WiFiConnected = false;
   unsigned long lastWifiUpdate = -10000;
   // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE); 
-  WiFi.setHostname(hostname);
+  WiFi.setHostname(config.hostname.c_str());
 
   // init HW Communication
   LX790_State state;
@@ -43,7 +32,7 @@ void TaskHW( void * pvParameters )
   memset(&state, 0x00, sizeof state);
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
   state.msg = "";
-  state.hostname = hostname;
+  state.hostname = config.hostname.c_str();
 
   EEPROM.begin(EEPROM_SIZE);
   state.autoUnlock = EEPROM.readBool(EEPROM_autoUnlock);
@@ -98,7 +87,7 @@ void TaskHW( void * pvParameters )
         // start AP
         Serial.println(F("start AP.."));
         WiFi.begin();
-        WiFi.softAP(hostname);
+        WiFi.softAP(config.hostname.c_str());
         lastWifiUpdate = time;
       }
     }
@@ -133,7 +122,7 @@ void TaskHW( void * pvParameters )
       {
         lastWifiUpdate = time;
         Serial.println(F("WiFi connect.."));
-        WiFi.begin(ssid, password);
+        WiFi.begin(config.ssid.c_str(), config.wifi_pwd.c_str());
       }
     }
 #endif

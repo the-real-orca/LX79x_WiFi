@@ -228,9 +228,6 @@ void TaskWeb( void * pvParameters )
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
   state.msg="";  
 
-  if(!SPIFFS.begin(true))
-    Serial.println(F("init SPIFFS error"));
-
   // redirect root to index.html
   server.on("/", HTTP_GET, [](){
     if(!handleFileRead("/index.html"))
