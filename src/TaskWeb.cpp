@@ -6,6 +6,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include "SPIFFS.h"
+#include "FileBrowser.h"
 #include <Update.h>
 #define EZTIME_EZT_NAMESPACE
 #include <ezTime.h>
@@ -58,12 +59,6 @@ boolean captivePortal() {
 }
 
 
-String formatBytes(size_t bytes);
-String getContentType(String filename);
-bool exists(String path);
-bool handleFileRead(String path);
-void handleFileUpload();
-void handleFileDelete();
 
 const char *jsonStatus() {
 

@@ -3,12 +3,7 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <SPIFFS.h>
-
-
-String formatBytes(size_t bytes);
-String getContentType(String filename);
-bool handleFileRead(String path);
-void handleFileUpload();
+#include "FileBrowser.h"
 
 extern WebServer server;
 //holds the current upload
