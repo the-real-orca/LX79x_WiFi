@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <string.h>
 #include "LX790_util.h"
-#include "SPIFFS.h"
 
 // Copy "config_sample.h" to "config.h" and change it according to your setup.
 #include "config.h"
+#include "config_util.h"
 
 
 TaskHandle_t hTaskHW;   //Hardware: I2C, WiFi...
@@ -27,19 +27,9 @@ void setup()
 
   if(!SPIFFS.begin(true))
     Serial.println(F("init SPIFFS error"));
-    
-File file = SPIFFS.open("/config.ini", "r");
-if (!file) {
-  Serial.println("cannot open 'config.ini'");
-  return;
-} else {
-  Serial.println("config file:");
-  while (file.available()) {
-    String line = file.readStringUntil('\n');
-    int pos = line.indexOf('=');
-    if ( pos > 0 ) {
-      String key = line.substring(0, pos); key.trim();
-      String value = line.substring(pos+1); value.trim();
+  
+  // read config
+  config.captivePortal = readConfigFile("/config.ini", [](String key, String value) {
       if ( key.equalsIgnoreCase("SSID") ) {
         config.ssid = value;
       } else if ( key.equalsIgnoreCase("PASSWORD") ) {
@@ -49,18 +39,13 @@ if (!file) {
       } else if ( key.equalsIgnoreCase("PIN") ) {
         strncpy(config.pin, value.c_str(), 4);
       }
-
-    }
-  }
-  file.close();
-}
-
-
-Serial.print("SSID: "); Serial.println(config.ssid);
-Serial.print("wifi_pwd: "); Serial.println(config.wifi_pwd);
-Serial.print("hostname: "); Serial.println(config.hostname);
-Serial.print("pin: "); Serial.println(config.pin);
-
+    }) ? false : true;
+#if DEBUG_SERIAL_PRINT
+  Serial.print("SSID: "); Serial.println(config.ssid);
+  Serial.print("wifi_pwd: "); Serial.println(config.wifi_pwd);
+  Serial.print("hostname: "); Serial.println(config.hostname);
+  Serial.print("pin: "); Serial.println(config.pin);
+#endif
 
   stateQueue = xQueueCreate(2, sizeof(LX790_State));
   if (stateQueue == NULL) {
