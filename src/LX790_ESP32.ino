@@ -29,22 +29,43 @@ void setup()
     Serial.println(F("init SPIFFS error"));
   
   // read config
-  config.captivePortal = readConfigFile("/config.ini", [](String key, String value) {
-      if ( key.equalsIgnoreCase("SSID") ) {
-        config.ssid = value;
-      } else if ( key.equalsIgnoreCase("PASSWORD") ) {
-        config.wifi_pwd = value;
-      } else if ( key.equalsIgnoreCase("HOSTNAME") ) {
-        config.hostname = value;
-      } else if ( key.equalsIgnoreCase("PIN") ) {
-        strncpy(config.pin, value.c_str(), 4);
-      }
-    }) ? false : true;
+  config.captivePortal = false;
+  config.portalTimeout = 10 * 60;
+
+  if ( !readConfigFile("/config.ini", [](String key, String value) {
+    if ( key.equalsIgnoreCase("SSID") ) {
+      config.ssid = value;
+    } else if ( key.equalsIgnoreCase("PASSWORD") ) {
+      config.wifi_pwd = value;
+    } else if ( key.equalsIgnoreCase("HOSTNAME") ) {
+      config.hostname = value;
+    } else if ( key.equalsIgnoreCase("PIN") ) {
+      strncpy(config.pin, value.c_str(), 4);
+    } else if ( key.equalsIgnoreCase("CAPTIVEPORTAL") ) {
+      config.captivePortal = value.equalsIgnoreCase("TRUE") || value.equalsIgnoreCase("1");
+    } else if ( key.equalsIgnoreCase("CAPTIVE") ) {
+      config.captivePortal = value.equalsIgnoreCase("TRUE") || value.equalsIgnoreCase("1");
+    } else if ( key.equalsIgnoreCase("PORTAL") ) {
+      config.captivePortal = value.equalsIgnoreCase("TRUE") || value.equalsIgnoreCase("1");
+    } else if ( key.equalsIgnoreCase("PORTALTIMEOUT") ) {
+      config.portalTimeout = value.toInt();
+    }
+  }) ) {
+    config.captivePortal = true;
+  }
+
+//FIXME
+config.captivePortal = true;
+
+
 #if DEBUG_SERIAL_PRINT
   Serial.print("SSID: "); Serial.println(config.ssid);
   Serial.print("wifi_pwd: "); Serial.println(config.wifi_pwd);
   Serial.print("hostname: "); Serial.println(config.hostname);
   Serial.print("pin: "); Serial.println(config.pin);
+  Serial.print("captivePortal: "); Serial.println(config.captivePortal);
+  Serial.print("portalPassword: "); Serial.println(config.portalPassword);
+  Serial.print("portalTimeout: "); Serial.println(config.portalTimeout);
 #endif
 
   stateQueue = xQueueCreate(2, sizeof(LX790_State));

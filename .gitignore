@@ -5,7 +5,6 @@
 .vscode/launch.json
 .vscode/ipch
 /LX79x_WiFi.code-workspace
-src/config.h
 src/data/Thumbs.db
 Thumbs.db
 /firmware

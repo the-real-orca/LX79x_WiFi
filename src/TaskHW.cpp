@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <string.h>
 #include <WiFi.h>
+#include "esp_wifi.h"
 #include <DNSServer.h>
 #include <mDNS.h>
 
@@ -23,7 +24,8 @@ void TaskHW( void * pvParameters )
   // init WiFi
   bool  WiFiConnected = false;
   unsigned long lastWifiUpdate = -10000;
-  // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE); 
+  WiFi.mode(WIFI_OFF);
+  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE); 
   WiFi.setHostname(config.hostname.c_str());
 
   // init HW Communication
@@ -54,78 +56,82 @@ void TaskHW( void * pvParameters )
     wl_status_t wifiStatus = WiFi.status();
     state.wifi = (wifiStatus == WL_CONNECTED);
 
-#define CAPTIVE_PORTAL true
-#ifdef CAPTIVE_PORTAL
-    if ( WiFiConnected )
+    if (config.captivePortal)
     {
-      if ( (time - lastWifiUpdate) > 5000)
+      // captive portal
+      if ( WiFiConnected )
       {
-        lastWifiUpdate = time;
+        // handle DNS
+        dnsServer.processNextRequest();
 
-        if (wifiStatus != WL_CONNECTED)
-        {
-          WiFiConnected = false;
-          Serial.println(F("WiFi reconnect.."));
-          dnsServer.stop();
-          WiFi.softAPdisconnect();
-        }
       }
-    }
-    else
-    {
-      if (wifiStatus == WL_CONNECTED) 
-      {
+      else
+      {   
+        // start AP
+        Serial.println(F("start AP.."));
+        WiFi.mode(WIFI_AP);
+        delay(100);
+        if ( !WiFi.softAP(config.hostname.c_str(), config.portalPassword.c_str()) ) {
+          Serial.println("softAP failed");
+        }
+        delay(100);
+
+        Serial.print("AP SSID: "); Serial.println(config.hostname);
         Serial.print("AP IP address: "); Serial.println(WiFi.softAPIP());
 
         // Setup the DNS server redirecting all the domains
         dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
         dnsServer.start(53, "*", WiFi.softAPIP());
+
         WiFiConnected = true;
-      }
-      else if ( (time - lastWifiUpdate) > 5000)
-      {   
-        // start AP
-        Serial.println(F("start AP.."));
-        WiFi.begin();
-        WiFi.softAP(config.hostname.c_str());
         lastWifiUpdate = time;
       }
-    }
-  
-    // handle DNS
-    dnsServer.processNextRequest();
 
-#else
-    if ( WiFiConnected )
-    {
-      if ( (time - lastWifiUpdate) > 5000)
+      wifi_sta_list_t wifi_sta_list;
+      esp_wifi_ap_get_sta_list(&wifi_sta_list);
+
+      // check if captive portal timed out
+      if ( (time/1000L > config.portalTimeout) && !wifi_sta_list.num ) {
+        Serial.println("captive portal timed out");
+        WiFi.softAPdisconnect();
+        config.captivePortal = false;
+        WiFiConnected = false;
+        lastWifiUpdate = -10000;
+      }
+
+
+    } else {
+      // connect as WiFi client
+      if ( WiFiConnected )
       {
-        lastWifiUpdate = time;
-
-        if (wifiStatus != WL_CONNECTED)
+        if ( (time - lastWifiUpdate) > 5000)
         {
-          WiFiConnected = false;
-          Serial.println(F("WiFi reconnect.."));
-          WiFi.disconnect();
+          lastWifiUpdate = time;
+
+          if (wifiStatus != WL_CONNECTED)
+          {
+            WiFiConnected = false;
+            Serial.println("WiFi reconnect..");
+            WiFi.disconnect();
+          }
+        }
+      }
+      else
+      {
+        if (wifiStatus == WL_CONNECTED)
+        {
+          WiFiConnected = true;
+          Serial.print("WiFi successfully connected with IP: "); Serial.println(WiFi.localIP());
+        }
+        else if ( (time - lastWifiUpdate) > 4000)
+        {
+          lastWifiUpdate = time;
+          Serial.println("WiFi connect..");
+          WiFi.mode(WIFI_STA);
+          WiFi.begin(config.ssid.c_str(), config.wifi_pwd.c_str());
         }
       }
     }
-    else
-    {
-      if (wifiStatus == WL_CONNECTED)
-      {
-        WiFiConnected = true;
-        Serial.print  (F("WiFi successfully connected with IP: "));
-        Serial.println(WiFi.localIP());
-      }
-      else if ( (time - lastWifiUpdate) > 4000)
-      {
-        lastWifiUpdate = time;
-        Serial.println(F("WiFi connect.."));
-        WiFi.begin(config.ssid.c_str(), config.wifi_pwd.c_str());
-      }
-    }
-#endif
 
     // do HW communication
     HAL_loop(state);
