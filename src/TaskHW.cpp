@@ -63,7 +63,6 @@ void TaskHW( void * pvParameters )
       {
         // handle DNS
         dnsServer.processNextRequest();
-
       }
       else
       {   
@@ -77,6 +76,7 @@ void TaskHW( void * pvParameters )
         delay(100);
 
         Serial.print("AP SSID: "); Serial.println(config.hostname);
+        Serial.print("AP password: "); Serial.println(config.portalPassword);
         Serial.print("AP IP address: "); Serial.println(WiFi.softAPIP());
 
         // Setup the DNS server redirecting all the domains
@@ -91,7 +91,8 @@ void TaskHW( void * pvParameters )
       esp_wifi_ap_get_sta_list(&wifi_sta_list);
 
       // check if captive portal timed out
-      if ( (time/1000L > config.portalTimeout) && !wifi_sta_list.num ) {
+      if ( (time/1000L > config.portalTimeout) && !wifi_sta_list.num ) // TODO switch to relative timeout 
+      { 
         Serial.println("captive portal timed out");
         WiFi.softAPdisconnect();
         config.captivePortal = false;
@@ -128,7 +129,7 @@ void TaskHW( void * pvParameters )
           lastWifiUpdate = time;
           Serial.println("WiFi connect..");
           WiFi.mode(WIFI_STA);
-          WiFi.begin(config.ssid.c_str(), config.wifi_pwd.c_str());
+          WiFi.begin(config.wifiSSID.c_str(), config.wifiPassword.c_str());
         }
       }
     }

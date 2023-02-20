@@ -5,115 +5,7 @@
   <meta content="de" http-equiv="Content-Language" />
   <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
   <link rel="icon" type="image/png" href="robomower.png">
-  <style>
-  html {
-    font-family: Arial, Helvetica, sans-serif;
-    text-align: center;
-  }
-  h1 {
-    font-size: 1.5rem;
-    color: #707070;
-  }
-  h2{
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #143642;
-  }
-  .topnav {
-    overflow: hidden;
-    background-color: #7bea7b;
-  }
-  body {
-    margin: 0;
-  }
-  .content {
-    padding: 30px;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  .card {
-    background-color: #f0f0f0;
-    box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
-    padding-top: 10px;
-    padding-bottom: 20px;
-  }
-  .toggle_card {
-    font-size: 150%; 
-    text-align: right;
-    padding: 0px 20px;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-   }  
-   .secondary {
-    background-color: #e0e0e0;
-    padding-top: 5px;
-    padding-bottom: 10px;
-  }
-  .button {
-    display: inline-block;
-    padding: 15px 30px;
-    font-size: 24px;
-    text-align: center;
-    text-decoration: none;
-    outline: none;
-    color: #fff;
-    background-color: #7bea7b;
-    border: none;
-    border-radius: 5px;
-    box-shadow: 2px 2px #cdcdcd;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-   }
-   .buttonSmall{
-    font-size: 15px;   
-   }
-   .button:disabled {
-    background-color: #a0a0a0 !important;
-   }
-   .button:hover {
-    background-color: #20cf20
-   }
-   .button:active {
-     background-color: #7bea7b;
-     transform: translateY(2px);
-     box-shadow: 0px 0px #cdcdcd;
-   }
-   .buttonred {
-     background-color: #ff5252;
-   }
-   .buttonred:hover {background-color: #ff0000}
-   .segment {
-     font-size: 2.5rem;
-     color:#ff5252;
-     font-weight: bold;
-   }
-   .info {
-     font-size: 1.0rem;
-     color:#808080;
-     text-align: center;
-     vertical-align: middle;
-     padding-bottom: 20px;
-   }
-   .table {
-    margin-left: auto;
-    margin-right: auto;   
-    border: 0;
-    padding: 30px 30px;
-   }
-   .hide {
-    display: none;
-   }
-
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -227,41 +119,29 @@
   function ActionButtonOn() 
   {
     console.log(this.name + " pressed");
-    var xhr = new XMLHttpRequest();   
-  
-    xhr.open("GET", "/cmd?parm="+this.name+"&value=1", true);
-    xhr.send();
+    fetch("/cmd?parm="+this.name+"&value=1");
   }
   function ActionButtonOff() 
   {
     console.log(this.name + " released");
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/cmd?parm="+this.name+"&value=0", true);
-    xhr.send();
+    fetch("/cmd?parm="+this.name+"&value=0");
   }  
   function ActionCheckbox() 
   {
     var val = this.checked ? 1 : 0;
     console.log(this.name + " checked: " + val);
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/cmd?parm="+this.name+"&value="+val, true);
-    xhr.send();
-    // this.indeterminate = true;
+    fetch("/cmd?parm="+this.name+"&value="+val);
   }    
   function ActValues()
   {
     var xhr = new XMLHttpRequest();
-
-    xhr.open('GET', '/web');
-    xhr.onreadystatechange = function()
-    {
-      if (xhr.readyState === 4 && xhr.status === 200 && xhr.responseText.length) 
-      {
-        setTimeout(ActValues, 200);
-
-        document.getElementById("status").textContent = xhr.responseText;
+    fetch("/status")
+      .then((response) => {
+console.log(response)
+        return response.json()})
+      .then((status) => {
+        document.getElementById("status").textContent = JSON.stringify(status, null, 1);
         let oldStatus = status;
-        status = JSON.parse(xhr.responseText);
         
         document.getElementById("seg1").textContent = status.digits[0];
         document.getElementById("seg2").textContent = status.digits[1];
@@ -299,9 +179,8 @@
           }
         }
 
-      }
-    }
-    xhr.send();
+      })
+      .catch((error) => {});      
   }
   function ActionConfigToggle()
   {

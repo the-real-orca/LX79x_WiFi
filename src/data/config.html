@@ -1,0 +1,86 @@
+<!DOCTYPE HTML><html>
+<head>
+  <title>LX790 lawn mower Config</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta content="de" http-equiv="Content-Language">
+  <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+  <link rel="icon" type="image/png" href="robomower.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="topnav">
+    <h1 id="hostname">LX79x Mähroboter</h1> <h1>Config</h1>
+    <h3><a href="/">[return]</a></h3>
+  </div>
+  <div class="content">
+    <div class="card config">
+      <label for="cfg_name">Name:</label> <input type="text" id="cfg_name" name="name" placeholder="LX79x" ><br>
+      <label for="cfg_pin">PIN:</label> <input type="text" id="cfg_pin" name="pin" placeholder="1234" maxlength="4" ><br>
+    </div>
+    <div class="card config">
+      <label for="cfg_wifiSSID">WLAN:</label> <input type="text" id="cfg_wifiSSID" name="wifiSSID" placeholder="SSID" ><br>
+      <label for="cfg_wifiPassword">Passwort:</label> <input type="text" id="cfg_wifiPassword" name="wifiPassword" placeholder="password" ><br>
+    </div>
+    <div class="card config">
+      <label for="cfg_captivePortal"><b>Captive Portal:</b></label> <input type="checkbox" id="cfg_captivePortal" name="captivePortal" ><br>
+      <label for="cfg_portalPassword">Passwort:</label> <input type="text" id="cfg_portalPassword" name="portalPassword" placeholder="portal" ><br>
+      <label for="cfg_portalTimeout">Timeout [s]:</label> <input type="number" id="cfg_portalTimeout" name="portalTimeout" placeholder="600" ><br>
+    </div>
+    <button id="btn_save" class="button buttonSmall">Save</button>
+  </div>
+
+
+  <script>
+    window.addEventListener('load', onLoad);
+    function onLoad(event) 
+    {
+      console.log('...init');
+
+      // load config
+      fetch('config.json')
+        .then((response) => response.json())
+        .then((data) => {
+          for (var key in data) {
+            var el = document.getElementById("cfg_"+key);
+            if (el) {
+              if ( el.type=="checkbox" )
+                el.checked = data[key];
+              else
+                el.value = data[key];
+            }
+          }
+        });
+
+      // save config
+      document.getElementById("btn_save").addEventListener("click", ()=>{
+
+        var data = {}
+        for (var el of document.getElementsByTagName("input")) {
+          var key = el.name;
+          if ( el.type=="checkbox" )
+            value = el.checked;
+          else if ( el.type=="number" )
+            value = parseInt(el.value);
+          else
+            value = el.value;
+
+          data[key] = value;
+        }
+
+        console.log(data)
+
+        fetch('config.json', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data, null, 1),
+        });
+      });
+
+    }
+  </script>
+</body>
+
+</html>

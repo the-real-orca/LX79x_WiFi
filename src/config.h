@@ -20,8 +20,8 @@ typedef struct {
   bool captivePortal;
   String portalPassword;
   uint32_t portalTimeout;
-  String ssid;
-  String wifi_pwd;
+  String wifiSSID;
+  String wifiPassword;
   String hostname;
   char pin[5];
 } LX790_Config;

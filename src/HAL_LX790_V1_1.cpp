@@ -34,7 +34,7 @@ void HAL_buttonPress(BUTTONS btn) {
     digitalWrite(pin, 0);
   }
   #if DEBUG_SERIAL_PRINT
-    Serial.printf("button pressed (D%d)", pin);
+    Serial.printf("button pressed (D%d)\n", pin);
   #endif
 }
 
@@ -47,7 +47,7 @@ void HAL_buttonRelease(BUTTONS btn) {
     pinMode(pin, INPUT);
   }
   #if DEBUG_SERIAL_PRINT
-    Serial.printf("button released (D%d)", pin);
+    Serial.printf("button released (D%d)\n", pin);
   #endif
 }
 

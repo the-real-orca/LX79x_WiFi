@@ -49,8 +49,10 @@ String toStringIp(IPAddress ip) {
 // checks if the request is for the controllers IP, if not we redirect automatically to the captive portal 
 boolean captivePortal() {
   if (!isIp(server.hostHeader())) {
+#if DEBUG_SERIAL_PRINT
     Serial.println("Request redirected to captive portal");
-    server.sendHeader("Location", String("http://") + toStringIp(server.client().localIP()) + String("/update"), true);
+#endif
+    server.sendHeader("Location", String("http://") + toStringIp(server.client().localIP()) + String("/config"), true);
     server.send(302, "text/plain", "");   
     server.client().stop(); 
     return true;
@@ -201,9 +203,9 @@ void Web_execupdate()
 {
   HTTPUpload& upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
-    #if DEBUG_SERIAL_PRINT
-      Serial.printf("Update: %s\n", upload.filename.c_str());
-    #endif
+#if DEBUG_SERIAL_PRINT
+    Serial.printf("Update: %s\n", upload.filename.c_str());
+#endif
     if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { 
       //start with max available size
       Update.printError(Serial);
@@ -228,21 +230,25 @@ void TaskWeb( void * pvParameters )
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
   state.msg="";  
 
+  // wait for HW task to start up network
+  delay(2000);
+
   // redirect root to index.html
-  server.on("/", HTTP_GET, [](){
-    if(!handleFileRead("/index.html"))
-        server.send(404, "text/plain", "FileNotFound");
-  });
+  server.serveStatic("/", SPIFFS, "/index.html");
+  server.serveStatic("/config", SPIFFS, "/config.html");
 
   // serve all files on SPIFFS
   server.onNotFound([](){
-//    Serial.printf("request URL: %s\n", server.uri());
+#if DEBUG_SERIAL_PRINT
+    Serial.printf("request URL: %s\n", server.uri());
+#endif
     if ( captivePortal() )
       return;
 
     if ( !handleFileRead(server.uri()) )
         server.send(404, "text/plain", "FileNotFound");
   });
+
 
   server.on("/update", HTTP_GET, []() {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -279,9 +285,28 @@ void TaskWeb( void * pvParameters )
 
 
   server.on("/cmd", HTTP_GET, Web_getCmd);
-  server.on("/web", HTTP_GET, Web_aktStatusWeb);
+  server.on("/status", HTTP_GET, Web_aktStatusWeb);
   server.on("/log", HTTP_GET, Web_getLog);
   server.on("/del", HTTP_GET, handleFileDelete);
+
+  server.on("/config.json", HTTP_PUT, []() {
+    if (server.args() == 0) {
+      return server.send(500, "text/plain", "BAD ARGS");
+    }
+    String data = server.arg(0);
+    if ( data.length() < 2 )
+      return server.send(500, "text/plain", "BAD CONFIG");
+
+    File file = SPIFFS.open("/config.json", "w");
+    file.println(data);
+    file.close();
+    server.send(200,"text/plain", "ok");
+
+#if DEBUG_SERIAL_PRINT
+    Serial.println("config.json saved");
+#endif
+
+  });
 
   server.enableCORS(true);
   server.begin();
