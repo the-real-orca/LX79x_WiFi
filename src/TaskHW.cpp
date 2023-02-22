@@ -56,6 +56,7 @@ void TaskHW( void * pvParameters )
     wl_status_t wifiStatus = WiFi.status();
     state.wifi = (wifiStatus == WL_CONNECTED);
 
+    // WiFi Network management
     if (config.captivePortal)
     {
       // captive portal
