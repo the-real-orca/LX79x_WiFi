@@ -63,6 +63,18 @@ void TaskHW( void * pvParameters )
       {
         // handle DNS
         dnsServer.processNextRequest();
+
+        // check if captive portal timed out
+        wifi_sta_list_t wifi_sta_list;
+        esp_wifi_ap_get_sta_list(&wifi_sta_list);
+        if ( ((time - lastWifiUpdate) > config.portalTimeout*1000L ) && !wifi_sta_list.num ) // close captive portal on timeout and no active client connection
+        { 
+          Serial.println("captive portal timed out");
+          WiFi.softAPdisconnect();
+          config.captivePortal = false;
+          WiFiConnected = false;
+          lastWifiUpdate = -10000;
+        }
       }
       else
       {   
@@ -86,20 +98,6 @@ void TaskHW( void * pvParameters )
         WiFiConnected = true;
         lastWifiUpdate = time;
       }
-
-      wifi_sta_list_t wifi_sta_list;
-      esp_wifi_ap_get_sta_list(&wifi_sta_list);
-
-      // check if captive portal timed out
-      if ( (time/1000L > config.portalTimeout) && !wifi_sta_list.num ) // TODO switch to relative timeout 
-      { 
-        Serial.println("captive portal timed out");
-        WiFi.softAPdisconnect();
-        config.captivePortal = false;
-        WiFiConnected = false;
-        lastWifiUpdate = -10000;
-      }
-
 
     } else {
       // connect as WiFi client
