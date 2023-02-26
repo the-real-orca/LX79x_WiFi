@@ -91,8 +91,8 @@ const char *jsonStatus() {
     ModeNames[state.mode],
     uxQueueMessagesWaiting(cmdQueue),
     state.wifi, WiFi.RSSI(),
-    state.hostname,
-    state.msg,
+    state.hostname.c_str(),
+    state.msg.c_str(),
     state.autoUnlock, state.debugLog,
     __DATE__, __TIME__);
 

@@ -75,7 +75,7 @@
       </div>
     </div>
     <br>
-    <div class="card secondary" >
+    <div class="card secondary" style="font-size: 80%;">
       <div id="toggle_debug" class="toggle_card" style="font-size: 80%;"><b>&lt;/&gt;</b></div>
       <div class="hide">
         <p id="status" style="color:grey">status ...</p>
@@ -154,6 +154,8 @@
       .then((response) => {
         return response.json()})
       .then((status) => {
+        setTimeout(ActValues, 200);
+
         document.getElementById("status").textContent = JSON.stringify(status, null, 1);
         let oldStatus = status;
         
@@ -194,7 +196,9 @@
         }
 
       })
-      .catch((error) => {});      
+      .catch((error) => {
+        setTimeout(ActValues, 10000);
+      });      
   }
   </script>
 </body>
