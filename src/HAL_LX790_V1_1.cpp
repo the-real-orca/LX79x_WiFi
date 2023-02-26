@@ -33,9 +33,7 @@ void HAL_buttonPress(BUTTONS btn) {
     pinMode(pin, OUTPUT);
     digitalWrite(pin, 0);
   }
-  #if DEBUG_SERIAL_PRINT
-    Serial.printf("button pressed (D%d)\n", pin);
-  #endif
+  DEBUG_printf("button pressed (D%d)\n", pin);
 }
 
 void HAL_buttonRelease(BUTTONS btn) {
@@ -46,9 +44,7 @@ void HAL_buttonRelease(BUTTONS btn) {
   } else {
     pinMode(pin, INPUT);
   }
-  #if DEBUG_SERIAL_PRINT
-    Serial.printf("button released (D%d)\n", pin);
-  #endif
+  DEBUG_printf("button released (D%d)\n", pin);
 }
 
 void decodeTM1668(const uint8_t raw[14], LX790_State &state) {

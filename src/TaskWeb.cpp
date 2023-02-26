@@ -49,9 +49,7 @@ String toStringIp(IPAddress ip) {
 // checks if the request is for the controllers IP, if not we redirect automatically to the captive portal 
 boolean captivePortal() {
   if (!isIp(server.hostHeader())) {
-#if DEBUG_SERIAL_PRINT
-    Serial.println("Request redirected to captive portal");
-#endif
+    DEBUG_println("Request redirected to captive portal");
     server.sendHeader("Location", String("http://") + toStringIp(server.client().localIP()) + String("/config"), true);
     server.send(302, "text/plain", "");   
     server.client().stop(); 
@@ -203,9 +201,7 @@ void Web_execupdate()
 {
   HTTPUpload& upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
-#if DEBUG_SERIAL_PRINT
-    Serial.printf("Update: %s\n", upload.filename.c_str());
-#endif
+    DEBUG_printf("Update: %s\n", upload.filename.c_str());
     if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { 
       //start with max available size
       Update.printError(Serial);
@@ -239,9 +235,7 @@ void TaskWeb( void * pvParameters )
 
   // serve all files on SPIFFS
   server.onNotFound([](){
-#if DEBUG_SERIAL_PRINT
-    Serial.printf("request URL: %s\n", server.uri());
-#endif
+    DEBUG_printf("request URL: %s\n", server.uri());
     if ( captivePortal() )
       return;
 
@@ -302,10 +296,7 @@ void TaskWeb( void * pvParameters )
     file.close();
     server.send(200,"text/plain", "ok");
 
-#if DEBUG_SERIAL_PRINT
-    Serial.println("config.json saved");
-#endif
-
+    DEBUG_println("config.json saved");
   });
 
   server.enableCORS(true);

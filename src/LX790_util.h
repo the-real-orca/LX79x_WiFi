@@ -41,7 +41,7 @@ extern QueueHandle_t stateQueue;
 typedef enum {BTN_NA = 0, BTN_IO, BTN_START, BTN_HOME, BTN_OK, BTN_STOP} BUTTONS;
 static const char* ButtonNames[] = {"n/a", "io", "start", "home", "ok", "stop", nullptr};
 typedef struct {
-  enum {NA = 0, BTN_PRESS, BTN_RELEASE, WAIT, REBOOT, AUTOUNLOCK, DEBUGLOG} cmd;
+  enum {NA = 0, BTN_PRESS, BTN_RELEASE, WAIT, REBOOT, AUTOUNLOCK, DEBUGLOG, DISCONNECT, WIFI_CLIENT, WIFI_PORTAL} cmd;
   signed int param;
 } CMD_Type;
 // LX790 Commands TaskWeb --> TaskHW

@@ -161,7 +161,7 @@ void HAL_loop(LX790_State &state) {
   //valid data from mainboard?
   if (err)
   {   
-    #if(DEBUG_SERIAL_PRINT  == 1)
+    #if DEBUG_SERIAL_PRINT
     {
       int i = 0;
       char hex[2] = {0};
@@ -276,7 +276,7 @@ void HAL_loop(LX790_State &state) {
     Lst_ButtonReqFromMainboard = millis();
 
     WireMaster.flush();
-    #if(DEBUG_SERIAL_PRINT  == 1)
+    #if DEBUG_SERIAL_PRINT
     {
       int i = 0;
       char hex[2] = {0};

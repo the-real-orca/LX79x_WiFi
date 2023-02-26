@@ -60,28 +60,29 @@
         <p>
           <button name="workzone" id="btn_workzone" class="button buttonSmall">Arbeitsbereich</button>
           <button name="timedate" id="btn_timedate" class="button buttonSmall">Zeit, Datum</button>
+          <button name="setpin" id="btn_setpin" class="button buttonSmall">neuer Pin</button>
+          <button name="setstarttime" id="btn_setstarttime" class="button buttonSmall">Startzeit</button>
         </p>
         <p>
-          <button name="setpin" id="btn_setpin" class="button buttonSmall">Pin</button>
-          <button name="setstarttime" id="btn_setstarttime" class="button buttonSmall">Startzeit</button>
+          <input type="checkbox" name="autoUnlock" id="chk_autoUnlock"><label for="chk_autoUnlock">PIN automatisch eingeben</label> (bei verbundenen WLAN)<br>
         </p>
         <hr>
         <p>
           <a href="update" class="button buttonSmall">ESP32 aktualisieren</a>
+          <a href="config" class="button buttonSmall">ESP32 konfigurieren</a>
           <button name="reboot" id="btn_reboot" class="button buttonred buttonSmall">ESP32 neu starten</button>
-        </p>
-        <hr>
-        <p>
-          <input type="checkbox" name="autoUnlock" id="chk_autoUnlock"><label for="chk_autoUnlock">PIN automatisch eingeben</label> (bei verbundenen WLAN)<br>
-          <input type="checkbox" name="debugLog" id="chk_debugLog"><label for="chk_debugLog">Debug Log aktiviert</label> &rightarrow; <a href="/log"> Log anzeigen</a> <br>
         </p>
       </div>
     </div>
     <br>
     <div class="card secondary" >
-      <div id="toggle_status" class="toggle_card" style="font-size: 80%;"><b>&lt;/&gt;</b></div>
-      <div id="status" class="hide">
-        <p style="color:grey">status ...</p>
+      <div id="toggle_debug" class="toggle_card" style="font-size: 80%;"><b>&lt;/&gt;</b></div>
+      <div class="hide">
+        <p id="status" style="color:grey">status ...</p>
+        <hr>
+        <p>
+          <input type="checkbox" name="debugLog" id="chk_debugLog"><label for="chk_debugLog">Debug Log aktiviert</label> &rightarrow; <a href="/log"> Log anzeigen</a> <br>
+        </p>
       </div>
     </div>
     <br>
@@ -93,16 +94,30 @@
   let status = {lock: -1, clock: -1, battery: -1};
   
   window.addEventListener('load', onLoad);
+  
+  function ActionToggleCard(event)
+  {
+    card = event.srcElement;
+    while ( !card.classList.contains('card') ) {
+      card = card.parentNode;
+    }
+
+    for (var el of card.children ) {
+      if ( !el.classList.contains('toggle_card') ) {
+        el.classList.toggle('hide');
+      }
+    }
+  }
 
   function onLoad(event) 
   {
     console.log('...init');
-    document.getElementById("toggle_config").addEventListener("click",  ActionConfigToggle);
-    document.getElementById("toggle_status").addEventListener("click",  ActionStatusToggle);
+    for (var el of document.querySelectorAll(".toggle_card") ) {
+      el.addEventListener("click",  ActionToggleCard);
+    }
 
-    const btns = document.getElementsByTagName("button");
-    for (let i = 0; i < btns.length; i++) {
-      initButton(btns[i]);
+    for (var btn of document.getElementsByTagName("button") ) {
+      initButton(btn);
     }
 
     document.getElementById("chk_autoUnlock").addEventListener("click",  ActionCheckbox);
@@ -137,7 +152,6 @@
     var xhr = new XMLHttpRequest();
     fetch("/status")
       .then((response) => {
-console.log(response)
         return response.json()})
       .then((status) => {
         document.getElementById("status").textContent = JSON.stringify(status, null, 1);
@@ -181,14 +195,6 @@ console.log(response)
 
       })
       .catch((error) => {});      
-  }
-  function ActionConfigToggle()
-  {
-    document.getElementById("config").classList.toggle('hide');
-  }
-  function ActionStatusToggle()
-  {
-    document.getElementById("status").classList.toggle('hide');
   }
   </script>
 </body>

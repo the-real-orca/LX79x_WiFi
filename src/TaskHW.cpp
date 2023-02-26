@@ -20,9 +20,10 @@ DNSServer dnsServer;
 void TaskHW( void * pvParameters )
 {
   unsigned long time;
+  String commandBuffer;
 
   // init WiFi
-  bool  WiFiConnected = false;
+  bool WiFiConnected = false;
   unsigned long lastWifiUpdate = -10000;
   WiFi.mode(WIFI_OFF);
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE); 
@@ -52,85 +53,90 @@ void TaskHW( void * pvParameters )
   {
     time = millis();
 
-    // check WLAN state
-    wl_status_t wifiStatus = WiFi.status();
-    state.wifi = (wifiStatus == WL_CONNECTED);
+    if (config.wifiEnabled) {
+      // check WLAN state
+      wl_status_t wifiStatus = WiFi.status();
+      state.wifi = (wifiStatus == WL_CONNECTED);
 
-    // WiFi Network management
-    if (config.captivePortal)
-    {
-      // captive portal
-      if ( WiFiConnected )
+      // WiFi Network management
+      if (config.captivePortal)
       {
-        // handle DNS
-        dnsServer.processNextRequest();
-
-        // check if captive portal timed out
-        wifi_sta_list_t wifi_sta_list;
-        esp_wifi_ap_get_sta_list(&wifi_sta_list);
-        if ( ((time - lastWifiUpdate) > config.portalTimeout*1000L ) && !wifi_sta_list.num ) // close captive portal on timeout and no active client connection
-        { 
-          Serial.println("captive portal timed out");
-          WiFi.softAPdisconnect();
-          config.captivePortal = false;
-          WiFiConnected = false;
-          lastWifiUpdate = -10000;
-        }
-      }
-      else
-      {   
-        // start AP
-        Serial.println(F("start AP.."));
-        WiFi.mode(WIFI_AP);
-        delay(100);
-        if ( !WiFi.softAP(config.hostname.c_str(), config.portalPassword.c_str()) ) {
-          Serial.println("softAP failed");
-        }
-        delay(100);
-
-        Serial.print("AP SSID: "); Serial.println(config.hostname);
-        Serial.print("AP password: "); Serial.println(config.portalPassword);
-        Serial.print("AP IP address: "); Serial.println(WiFi.softAPIP());
-
-        // Setup the DNS server redirecting all the domains
-        dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-        dnsServer.start(53, "*", WiFi.softAPIP());
-
-        WiFiConnected = true;
-        lastWifiUpdate = time;
-      }
-
-    } else {
-      // connect as WiFi client
-      if ( WiFiConnected )
-      {
-        if ( (time - lastWifiUpdate) > 5000)
+        // captive portal
+        if ( WiFiConnected )
         {
-          lastWifiUpdate = time;
+          // handle DNS
+          dnsServer.processNextRequest();
 
-          if (wifiStatus != WL_CONNECTED)
-          {
+          // check if captive portal timed out
+          wifi_sta_list_t wifi_sta_list;
+          esp_wifi_ap_get_sta_list(&wifi_sta_list);
+          if ( ((time - lastWifiUpdate) > config.portalTimeout*1000L ) && !wifi_sta_list.num ) // close captive portal on timeout and no active client connection
+          { 
+            Serial.println("captive portal timed out");
+            dnsServer.stop();
+            WiFi.softAPdisconnect();
+            config.captivePortal = false;
             WiFiConnected = false;
-            Serial.println("WiFi reconnect..");
-            WiFi.disconnect();
+            lastWifiUpdate = -10000;
+          }
+        }
+        else
+        {   
+          // start AP
+          Serial.println(F("start AP.."));
+          WiFi.mode(WIFI_AP);
+          delay(100);
+          if ( !WiFi.softAP(config.hostname.c_str(), config.portalPassword.c_str()) ) {
+            Serial.println("softAP failed");
+          }
+          delay(100);
+
+          Serial.print("AP SSID: "); Serial.println(config.hostname);
+          Serial.print("AP password: "); Serial.println(config.portalPassword);
+          Serial.print("AP IP address: "); Serial.println(WiFi.softAPIP());
+
+          // Setup the DNS server redirecting all the domains
+          dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+          dnsServer.start(53, "*", WiFi.softAPIP());
+
+          WiFiConnected = true;
+          lastWifiUpdate = time;
+        }
+
+      } else {
+        // connect as WiFi client
+        if ( WiFiConnected )
+        {
+          if ( (time - lastWifiUpdate) > 5000)
+          {
+            lastWifiUpdate = time;
+
+            if (wifiStatus != WL_CONNECTED)
+            {
+              WiFiConnected = false;
+              Serial.println("WiFi reconnect..");
+              WiFi.disconnect();
+            }
+          }
+        }
+        else
+        {
+          if (wifiStatus == WL_CONNECTED)
+          {
+            WiFiConnected = true;
+            Serial.print("WiFi successfully connected with IP: "); Serial.println(WiFi.localIP());
+          }
+          else if ( (time - lastWifiUpdate) > 4000)
+          {
+            lastWifiUpdate = time;
+            Serial.println("WiFi connect..");       
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(config.wifiSSID.c_str(), config.wifiPassword.c_str());
           }
         }
       }
-      else
-      {
-        if (wifiStatus == WL_CONNECTED)
-        {
-          WiFiConnected = true;
-          Serial.print("WiFi successfully connected with IP: "); Serial.println(WiFi.localIP());
-        }
-        else if ( (time - lastWifiUpdate) > 4000)
-        {
-          lastWifiUpdate = time;
-          Serial.println("WiFi connect..");
-          WiFi.mode(WIFI_STA);
-          WiFi.begin(config.wifiSSID.c_str(), config.wifiPassword.c_str());
-        }
-      }
+    } else {
+      state.wifi = false;
     }
 
     // do HW communication
@@ -153,17 +159,54 @@ void TaskHW( void * pvParameters )
 
       case CMD_Type::WAIT:
         if ( (time - cmdStart) > cmd.param ) {
-          // finished
+          // finished wait
           cmd.cmd = CMD_Type::NA;
         }
         break;
 
       case CMD_Type::REBOOT:
         if ( (time - cmdStart) > cmd.param ) {
-          // finished
+          // finished timeout
+          DEBUG_println("reboot ESP32");
           cmd.cmd = CMD_Type::NA;
           ESP.restart();
         }
+        break;
+
+      case CMD_Type::DISCONNECT:
+        // disconnet network
+        DEBUG_println("disconnet network");
+        if ( WiFi.getMode() == WIFI_AP ) {
+          dnsServer.stop();
+          WiFi.softAPdisconnect();
+
+        } else {
+          WiFi.disconnect();
+        }
+        config.wifiEnabled = false;
+        WiFiConnected = false;
+        lastWifiUpdate = -10000;
+        cmd.cmd = CMD_Type::NA;
+        break;
+
+      case CMD_Type::WIFI_CLIENT:
+        // enable client mode
+        DEBUG_println("enable client mode");
+        config.wifiEnabled = true;
+        config.captivePortal = false;
+        WiFiConnected = false;
+        lastWifiUpdate = -10000;
+        cmd.cmd = CMD_Type::NA;
+        break;
+
+      case CMD_Type::WIFI_PORTAL:
+        // enable captive portal
+        DEBUG_println("enable captive portal");
+        config.wifiEnabled = true;
+        config.captivePortal = true;
+        WiFiConnected = false;
+        lastWifiUpdate = -10000;
+        cmd.cmd = CMD_Type::NA;
         break;
 
       case CMD_Type::BTN_PRESS:
@@ -202,6 +245,53 @@ void TaskHW( void * pvParameters )
 
       xQueueSend(stateQueue, &state, 0);
       state.updated = false;
+    }
+
+    // process Serial input
+    if ( Serial.available() ) {
+      char inputChar = Serial.read();
+
+      if (inputChar == '\n' || commandBuffer.length() > 32 ) {
+        commandBuffer.trim();
+
+        // Execute the command
+        if ( commandBuffer.equalsIgnoreCase("reboot") ) {
+          // reboot ESP32
+          CMD_Type xcmd({CMD_Type::REBOOT, 0}); xQueueSend(cmdQueue, &xcmd, 0);
+        } else if ( commandBuffer.equalsIgnoreCase("portal") || commandBuffer.equalsIgnoreCase("ap") ) {
+          CMD_Type xcmd({CMD_Type::DISCONNECT, 0}); xQueueSend(cmdQueue, &xcmd, 0);
+          xcmd = {CMD_Type::WAIT, 1000}; xQueueSend(cmdQueue, &xcmd, 0);
+          xcmd = {CMD_Type::WIFI_PORTAL, 0}; xQueueSend(cmdQueue, &xcmd, 0);
+        } else if ( commandBuffer.equalsIgnoreCase("client") ) {
+          CMD_Type xcmd({CMD_Type::DISCONNECT, 0}); xQueueSend(cmdQueue, &xcmd, 0);
+          xcmd = {CMD_Type::WAIT, 1000}; xQueueSend(cmdQueue, &xcmd, 0);
+          xcmd = {CMD_Type::WIFI_CLIENT, 0}; xQueueSend(cmdQueue, &xcmd, 0);
+        } else if ( commandBuffer.equalsIgnoreCase("disconnect") ) {
+          CMD_Type xcmd({CMD_Type::DISCONNECT, 0}); xQueueSend(cmdQueue, &xcmd, 0);
+        } else if ( commandBuffer.equalsIgnoreCase("config") ) {
+          Serial.print("wifiSSID: "); Serial.println(config.wifiSSID);
+          Serial.print("wifiPassword: "); Serial.println(config.wifiPassword);
+          Serial.print("hostname: "); Serial.println(config.hostname);
+          Serial.print("pin: "); Serial.println(config.pin);
+          Serial.print("captivePortal: "); Serial.println(config.captivePortal);
+          Serial.print("portalPassword: "); Serial.println(config.portalPassword);
+          Serial.print("portalTimeout: "); Serial.println(config.portalTimeout);
+        } else {
+          // print help
+          Serial.println("Serial commands:");
+          Serial.println(" reboot:      reboots ESP32");
+          Serial.println(" config:      show config settings");
+          Serial.println(" portal | ap: start captive portal");
+          Serial.println(" client:      switch to client mode");
+          Serial.println(" disconnect:  deactivate WiFi");
+          Serial.println();
+        }
+
+        commandBuffer.clear();
+      } else {
+        commandBuffer += inputChar;
+        Serial.print(inputChar);
+      }
     }
 
     delay(5);

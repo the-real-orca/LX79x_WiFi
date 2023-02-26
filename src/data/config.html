@@ -63,7 +63,7 @@
           else if ( el.type=="number" )
             value = parseInt(el.value);
           else
-            value = el.value;
+            value = el.value.trim();
 
           data[key] = value;
         }

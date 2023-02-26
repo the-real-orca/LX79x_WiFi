@@ -53,15 +53,16 @@ label {
   -ms-user-select: none;
   user-select: none;
   }  
-  .secondary {
+.secondary {
   background-color: #e0e0e0;
   padding-top: 5px;
   padding-bottom: 10px;
 }
 .button {
   display: inline-block;
-  padding: 15px 30px;
-  font-size: 24px;
+  margin: 0.25em;
+  padding: 0.5em 1em;
+  font-size: 150%;
   text-align: center;
   text-decoration: none;
   outline: none;
@@ -78,42 +79,44 @@ label {
   user-select: none;
   -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
-  .buttonSmall{
-  font-size: 15px;   
+.buttonSmall{
+  font-size: 100%;   
   }
-  .button:disabled {
+.button:disabled {
   background-color: #a0a0a0 !important;
   }
-  .button:hover {
+.button:hover {
   background-color: #20cf20
   }
-  .button:active {
+.button:active {
     background-color: #7bea7b;
     transform: translateY(2px);
     box-shadow: 0px 0px #cdcdcd;
   }
-  .buttonred {
+.buttonred {
     background-color: #ff5252;
   }
-  .buttonred:hover {background-color: #ff0000}
-  .segment {
+.buttonred:hover {
+  background-color: #ff0000
+}
+.segment {
     font-size: 2.5rem;
     color:#ff5252;
     font-weight: bold;
   }
-  .info {
+.info {
     font-size: 1.0rem;
     color:#808080;
     text-align: center;
     vertical-align: middle;
     padding-bottom: 20px;
   }
-  .table {
+.table {
   margin-left: auto;
   margin-right: auto;   
   border: 0;
   padding: 30px 30px;
   }
-  .hide {
+.hide {
   display: none;
   }

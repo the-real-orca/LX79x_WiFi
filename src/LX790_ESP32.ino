@@ -44,7 +44,8 @@ void setup()
   // import config
   config.hostname = doc["name"] | "LX790";
   strncpy(config.pin, doc["pin"] | "1234", 4);
-  config.wifiSSID = doc["wifiwifiSSID"] | "wifiSSID";
+  config.wifiEnabled = doc["wifiEnabled"] | true;
+  config.wifiSSID = doc["wifiSSID"] | "SSID";
   config.wifiPassword = doc["wifiPassword"] | "";
   config.captivePortal = doc["captivePortal"] | true;
   config.portalTimeout = doc["portalTimeout"] | 600;
@@ -52,18 +53,7 @@ void setup()
   file.close();
 
 // TODO enable captive portal on "HOME" button press
-// TODO enable captive portal via serial terminal
 // TODO upload config.json via serial terminal
-
-#if DEBUG_SERIAL_PRINT
-  Serial.print("wifiSSID: "); Serial.println(config.wifiSSID);
-  Serial.print("wifiPassword: "); Serial.println(config.wifiPassword);
-  Serial.print("hostname: "); Serial.println(config.hostname);
-  Serial.print("pin: "); Serial.println(config.pin);
-  Serial.print("captivePortal: "); Serial.println(config.captivePortal);
-  Serial.print("portalPassword: "); Serial.println(config.portalPassword);
-  Serial.print("portalTimeout: "); Serial.println(config.portalTimeout);
-#endif
 
   stateQueue = xQueueCreate(2, sizeof(LX790_State));
   if (stateQueue == NULL) {

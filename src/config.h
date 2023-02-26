@@ -11,12 +11,21 @@
 /*
  * Debug
  */
-#define DEBUG_SERIAL_PRINT 1
+#define DEBUG_SERIAL_PRINT 0
+
+#if DEBUG_SERIAL_PRINT
+  #define DEBUG_println(x)  Serial.println(x)
+  #define DEBUG_printf(x, y)  Serial.printf(x, y)
+#else  
+  #define DEBUG_println(x)
+  #define DEBUG_printf(x, y)
+#endif
 
 /*
  * config structure
  */
 typedef struct {
+  bool wifiEnabled;
   bool captivePortal;
   String portalPassword;
   uint32_t portalTimeout;
