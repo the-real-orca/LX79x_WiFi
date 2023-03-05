@@ -99,6 +99,9 @@ label {
 .buttonred:hover {
   background-color: #ff0000
 }
+.togglePassword {
+  padding: 1px 5px;
+}
 .segment {
     font-size: 2.5rem;
     color:#ff5252;

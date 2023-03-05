@@ -16,11 +16,11 @@
   <div class="content">
     <div class="card config">
       <label for="cfg_name">Name:</label> <input type="text" id="cfg_name" name="name" placeholder="LX79x" ><br>
-      <label for="cfg_pin">PIN:</label> <input type="text" id="cfg_pin" name="pin" placeholder="1234" maxlength="4" ><br>
+      <label for="cfg_pin">PIN:</label> <input type="password" id="cfg_pin" name="pin" placeholder="1234" maxlength="4" > <button class="togglePassword" for="cfg_pin"">&#x1F441;</button> <br>
     </div>
     <div class="card config">
       <label for="cfg_wifiSSID">WLAN:</label> <input type="text" id="cfg_wifiSSID" name="wifiSSID" placeholder="SSID" ><br>
-      <label for="cfg_wifiPassword">Passwort:</label> <input type="text" id="cfg_wifiPassword" name="wifiPassword" placeholder="password" ><br>
+      <label for="cfg_wifiPassword">Passwort:</label> <input type="password" id="cfg_wifiPassword" name="wifiPassword" placeholder="password" > <button class="togglePassword" for="cfg_wifiPassword">&#x1F441;</button><br>
     </div>
     <div class="card config">
       <label for="cfg_captivePortal"><b>Captive Portal:</b></label> <input type="checkbox" id="cfg_captivePortal" name="captivePortal" ><br>
@@ -32,6 +32,19 @@
 
 
   <script>
+
+    function togglePassword(event) {
+      var targetId = event.srcElement.getAttribute("for");
+      if ( targetId ) {
+        var input = document.getElementById(targetId);
+        if ( input.getAttribute("type") == "password" )
+          input.setAttribute("type", "text");
+        else
+          input.setAttribute("type", "password");
+      }
+
+    }
+
     window.addEventListener('load', onLoad);
     function onLoad(event) 
     {
@@ -79,6 +92,15 @@
         });
       });
 
+      // inif form
+      for (var el of document.getElementsByClassName("togglePassword") ) {
+        el.addEventListener("click",  togglePassword);
+        var targetId = el.getAttribute("for");
+        if ( targetId ) {
+          var input = document.getElementById(targetId);
+          input.style.width = "8em";
+        }
+      }
     }
   </script>
 </body>
