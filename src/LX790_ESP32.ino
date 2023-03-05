@@ -52,9 +52,6 @@ void setup()
   config.portalPassword = doc["portalPassword"] | "";
   file.close();
 
-// TODO enable captive portal on "HOME" button press
-// TODO upload config.json via serial terminal
-
   stateQueue = xQueueCreate(2, sizeof(LX790_State));
   if (stateQueue == NULL) {
     Serial.println(F("init state queue error"));

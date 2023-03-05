@@ -48,27 +48,36 @@ void HAL_buttonRelease(BUTTONS btn) {
 }
 
 void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
+  byte val;
 
   // clock
-  state.clock = bitRead(raw[0*2], 4) | bitRead(raw[1*2], 4);
+  val = bitRead(raw[0*2], 4) | bitRead(raw[1*2], 4);
+  if ( state.clock != val ) state.updated = true;
+  state.clock = val;
 
   // wifi
   // wifi is output / state.wifi = bitRead(raw[2*2], 4) | bitRead(raw[3*2], 4);
 
   // lock
-  state.lock = bitRead(raw[4*2], 4) | bitRead(raw[5*2], 4);
+  val = bitRead(raw[4*2], 4) | bitRead(raw[5*2], 4);
+  if ( state.lock != val ) state.updated = true;
+  state.lock = val;
 
   // battery
-  state.battery = bitRead(raw[2*2], 6) + bitRead(raw[1*2], 6) + bitRead(raw[0*2], 6);
+  val = bitRead(raw[2*2], 6) + bitRead(raw[1*2], 6) + bitRead(raw[0*2], 6);
+  if ( state.battery != val ) state.updated = true;
+  state.battery = val;
 
   // dots
-  state.point = ' ';
+  val = ' ';
   if ( bitRead(raw[3*2], 6) )
-      state.point = '\'';
+      val = '\'';
   if ( bitRead(raw[3*2], 6) )
-      state.point = '.';
+      val = '.';
   if ( bitRead(raw[3*2], 6) && bitRead(raw[3*2], 6) )
-      state.point = ':';
+      val = ':';
+  if ( state.point != val ) state.updated = true;
+  state.point = val;
 
   // LCD digits
   for (int i=0; i<4; i++) {
@@ -77,6 +86,7 @@ void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
     for (int j=0; j<7; j++) {
       segments |= (raw[j*2] & mask) ? (1<<j) : 0;
     }
+    if ( state.segments[i] != segments ) state.updated = true;
     state.segments[i] = segments;
   }
 }
@@ -109,10 +119,15 @@ void HAL_setup()
 }
 
 void HAL_loop(LX790_State &state) {
+  static LX790_State oldState = {0};
+  static long btnHomeTime = -1;
+  static byte btnHomeVal = -1;
+
   // read data via SPI
   if (tm1668.remained() == 0)
     tm1668.queue(spi_slave_rx_buf, sizeof spi_slave_rx_buf);
 
+  // LCD
   while (tm1668.available()) {
     int size = tm1668.size();
     if ( size ) {
@@ -128,28 +143,34 @@ void HAL_loop(LX790_State &state) {
           break;
 
         case DISPLAY_CMD_ADDRESS:
-          if ( size == 15)
+          if ( size == 15) {
             decodeTM1668(spi_slave_rx_buf+1, state);
-          state.updated = true;
+          }
           break;
       }
     }
     tm1668.pop();
   }
 
-  if ( state.updated ) {
-#if DEBUG_SERIAL_PRINT
-    Serial.print(" clock "); Serial.print(state.clock);
-    Serial.print(" wifi "); Serial.print(state.wifi);
-    Serial.print(" lock "); Serial.print(state.lock);
-    Serial.print(" battery "); Serial.print(state.battery);
-    Serial.print(" brightness "); Serial.print(state.brightness);
-    Serial.print(" mode "); Serial.print(state.mode);
-    Serial.print(" | LCD "); 
-    Serial.print(state.digits[0]); Serial.print(state.digits[1]); Serial.print(state.point); Serial.print(state.digits[2]); Serial.print(state.digits[3]);
-    Serial.println();
-#endif
+  // press "HOME" button for 10 seconds to start captive portal
+  unsigned long time = millis();
+  byte pin = getButtonPin(BTN_HOME);
+  byte val = digitalRead(pin);
+  if ( btnHomeVal != val ) {
+    DEBUG_print("button home: "); DEBUG_println(val);
+    btnHomeVal = val;
+    btnHomeTime = time;
   }
+  
+  if ( !config.captivePortal && state.brightness> 0 && btnHomeVal == 0 && ( (time-btnHomeTime) > 9000) ) {
+    btnHomeTime = time; // reset timer for home botton to prevent multiple execution
+    DEBUG_println("home button pressed 10s -> activate captive portal");
+    CMD_Type xcmd;
+    xcmd = {CMD_Type::DISCONNECT, 0}; xQueueSend(cmdQueue, &xcmd, 0);
+    xcmd = {CMD_Type::WAIT, 1000}; xQueueSend(cmdQueue, &xcmd, 0);
+    xcmd = {CMD_Type::WIFI_PORTAL, 0}; xQueueSend(cmdQueue, &xcmd, 0);
+  }
+
 }
 
 

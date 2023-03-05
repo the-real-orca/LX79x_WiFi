@@ -243,6 +243,19 @@ void TaskHW( void * pvParameters )
       lastStateUpdate = time;
       decodeDisplay(state);
 
+#if DEBUG_SERIAL_PRINT
+    Serial.print(" time "); Serial.print(millis()/1000.0);
+    Serial.print(" clock "); Serial.print(state.clock);
+    Serial.print(" wifi "); Serial.print(state.wifi);
+    Serial.print(" lock "); Serial.print(state.lock);
+    Serial.print(" battery "); Serial.print(state.battery);
+    Serial.print(" brightness "); Serial.print(state.brightness);
+    Serial.print(" mode "); Serial.print(state.mode);
+    Serial.print(" | LCD "); 
+    Serial.print(state.digits[0]); Serial.print(state.digits[1]); Serial.print(state.point); Serial.print(state.digits[2]); Serial.print(state.digits[3]);
+    Serial.println();
+#endif
+
       xQueueSend(stateQueue, &state, 0);
       state.updated = false;
     }
@@ -259,7 +272,8 @@ void TaskHW( void * pvParameters )
           // reboot ESP32
           CMD_Type xcmd({CMD_Type::REBOOT, 0}); xQueueSend(cmdQueue, &xcmd, 0);
         } else if ( commandBuffer.equalsIgnoreCase("portal") || commandBuffer.equalsIgnoreCase("ap") ) {
-          CMD_Type xcmd({CMD_Type::DISCONNECT, 0}); xQueueSend(cmdQueue, &xcmd, 0);
+          CMD_Type xcmd;
+          xcmd = {CMD_Type::DISCONNECT, 0}; xQueueSend(cmdQueue, &xcmd, 0);
           xcmd = {CMD_Type::WAIT, 1000}; xQueueSend(cmdQueue, &xcmd, 0);
           xcmd = {CMD_Type::WIFI_PORTAL, 0}; xQueueSend(cmdQueue, &xcmd, 0);
         } else if ( commandBuffer.equalsIgnoreCase("client") ) {
