@@ -146,10 +146,14 @@
     var val = this.checked ? 1 : 0;
     console.log(this.name + " checked: " + val);
     fetch("/cmd?parm="+this.name+"&value="+val);
+    this.indeterminate = true;
   }    
+
+  let oldStatus = {};
   function ActValues()
   {
     var xhr = new XMLHttpRequest();
+
     fetch("/status")
       .then((response) => {
         return response.json()})
@@ -157,7 +161,6 @@
         setTimeout(ActValues, 200);
 
         document.getElementById("status").textContent = JSON.stringify(status, null, 1);
-        let oldStatus = status;
         
         document.getElementById("seg1").textContent = status.digits[0];
         document.getElementById("seg2").textContent = status.digits[1];
@@ -194,6 +197,8 @@
             }
           }
         }
+
+        oldStatus = status;
 
       })
       .catch((error) => {
