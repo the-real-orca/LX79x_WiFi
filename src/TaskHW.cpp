@@ -4,6 +4,7 @@
 #include "esp_wifi.h"
 #include <DNSServer.h>
 #include <mDNS.h>
+#include "esp_ota_ops.h"
 
 #include "LX790_util.h"
 #include "EEPROM.h"
@@ -44,6 +45,9 @@ void TaskHW( void * pvParameters )
 
   HAL_setup();
   state.updated = true;
+
+  // confirm firmware is valid
+  esp_ota_mark_app_valid_cancel_rollback();
 
   // command handling
   CMD_Type cmd = {CMD_Type::NA, 0};
