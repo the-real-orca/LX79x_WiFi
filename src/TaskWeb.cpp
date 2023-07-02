@@ -12,9 +12,13 @@
 #include <ezTime.h>
 #include "LX790_util.h"
 
-static const char* StatusFiles[] = {"/status.log", "/status1.log", "/status2.log"};
-static const uint8_t StatusFilesCount = 3;
-static const uint16_t StatusLinesCount = 500;
+static const char* DebugFiles[] = {"/debug.log", "/debug1.log", "/debug2.log"};
+static const uint8_t DebugFilesCount = 3;
+static const uint16_t DebugFileMaxSize = 65530;
+
+static const char* LogFiles[] = {"/system.log", "/system1.log", "/system2.log"};
+static const uint8_t LogFilesCount = 3;
+static const uint16_t LogFileMaxSize = 65530;
 
 // Copy "config_sample.h" to "config.h" and change it according to your setup.
 #include "config.h"
@@ -105,8 +109,29 @@ void Web_getLog()
   server.send(200, "text/json", "");
   server.sendContent("[");
 
-  for (int i = StatusFilesCount-1; i >= 0; i--) {
-    File file = SPIFFS.open(StatusFiles[i], "r");
+  for (int i = LogFilesCount-1; i >= 0; i--) {
+    File file = SPIFFS.open(LogFiles[i], "r");
+    if ( file ) {
+      String line = file.readStringUntil('\n');
+      while ( !line.isEmpty() ) {
+        server.sendContent(line);
+        line = file.readStringUntil('\n');
+      }
+      file.close();
+    }
+  }
+  server.sendContent("{}]");
+  server.sendContent("");
+}
+
+void Web_getDebugLog()
+{
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "text/json", "");
+  server.sendContent("[");
+
+  for (int i = DebugFilesCount-1; i >= 0; i--) {
+    File file = SPIFFS.open(DebugFiles[i], "r");
     if ( file ) {
       String line = file.readStringUntil('\n');
       while ( !line.isEmpty() ) {
@@ -280,6 +305,7 @@ void TaskWeb( void * pvParameters )
 
   server.on("/cmd", HTTP_GET, Web_getCmd);
   server.on("/status", HTTP_GET, Web_aktStatusWeb);
+  server.on("/debuglog", HTTP_GET, Web_getDebugLog);
   server.on("/log", HTTP_GET, Web_getLog);
   server.on("/del", HTTP_GET, handleFileDelete);
 
@@ -310,19 +336,40 @@ void TaskWeb( void * pvParameters )
     // sync state
     if ( xQueueReceive(stateQueue, &state, 0) == pdPASS ) {
       
-      // save to log
-      if ( state.debugLog ) {
-        File file = SPIFFS.open(StatusFiles[0], "a");
+      // save log on status change
+      static LX790_Mode lastMode = LX790_UNKNOWN;
+
+      if ( state.mode != lastMode ) {
+        lastMode = state.mode;
+        File file = SPIFFS.open(LogFiles[0], "a");
         if ( file ) {
           file.print( jsonStatus() ); file.println(",");
           size_t filesize = file.size();
           file.close();
 
           // rotate log file
-          if ( filesize > (250*StatusLinesCount) ) {
-            for (int i = (StatusFilesCount-1); i > 0; i--) {
-              SPIFFS.remove(StatusFiles[i]);
-              SPIFFS.rename(StatusFiles[i-1], StatusFiles[i]);
+          if ( filesize > LogFileMaxSize ) {
+            for (int i = (LogFilesCount-1); i > 0; i--) {
+              SPIFFS.remove(LogFiles[i]);
+              SPIFFS.rename(LogFiles[i-1], LogFiles[i]);
+            }
+          }
+        }
+      }
+
+      // save to debug log
+      if ( state.debugLog ) {
+        File file = SPIFFS.open(DebugFiles[0], "a");
+        if ( file ) {
+          file.print( jsonStatus() ); file.println(",");
+          size_t filesize = file.size();
+          file.close();
+
+          // rotate log file
+          if ( filesize > DebugFileMaxSize ) {
+            for (int i = (DebugFilesCount-1); i > 0; i--) {
+              SPIFFS.remove(DebugFiles[i]);
+              SPIFFS.rename(DebugFiles[i-1], DebugFiles[i]);
             }
           }
         }
