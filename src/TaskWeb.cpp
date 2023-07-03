@@ -12,12 +12,12 @@
 #include <ezTime.h>
 #include "LX790_util.h"
 
-static const char* DebugFiles[] = {"/debug.log", "/debug1.log", "/debug2.log"};
-static const uint8_t DebugFilesCount = 3;
+static const char* DebugFiles[] = {"/debug.log", "/debug1.log", "/debug2.log", "/debug3.log", "/debug4.log"};
+static const uint8_t DebugFilesCount = 5;
 static const uint16_t DebugFileMaxSize = 65530;
 
-static const char* LogFiles[] = {"/system.log", "/system1.log", "/system2.log"};
-static const uint8_t LogFilesCount = 3;
+static const char* LogFiles[] = {"/system.log", "/system1.log", "/system2.log", "/system3.log", "/system4.log"};
+static const uint8_t LogFilesCount = 5;
 static const uint16_t LogFileMaxSize = 65530;
 
 // Copy "config_sample.h" to "config.h" and change it according to your setup.
@@ -287,6 +287,15 @@ void TaskWeb( void * pvParameters )
       file = root.openNextFile();
     }
     server.sendContent("</ul>");
+
+    size_t total = SPIFFS.totalBytes();
+    size_t used = SPIFFS.usedBytes();    
+    server.sendContent("<p>");
+    server.sendContent("Size Total: "); server.sendContent(formatBytes(total).c_str());
+    server.sendContent(" / Used: "); server.sendContent(formatBytes(used).c_str());
+    server.sendContent(" / Free: "); server.sendContent(formatBytes(total-used).c_str());
+    server.sendContent("</p>");
+
     server.sendContent("</body></html>");
     server.sendContent("");
 
