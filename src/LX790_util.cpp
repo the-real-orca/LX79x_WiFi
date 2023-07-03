@@ -219,7 +219,7 @@ void decodeDisplay(LX790_State &state) {
   }
  
   // mode
-  if ( segCnt == 1 ) {
+  if ( segCnt == 1 ) {  // only one dash / segment active -> running
     // running
     state.mode = LX790_RUNNING;
     state.msg = "läuft ...";
@@ -227,18 +227,17 @@ void decodeDisplay(LX790_State &state) {
     {
       state.digits[i] = state.segments[i] ? ' ' : '*';
     }
-  } else if ( compareDigits(state.digits, "8888") && state.point == ':' ) {
+  } else if ( compareDigits(state.digits, "8888") && state.point == ':' ) { // all segments active -> self test / power up
     state.mode = LX790_POWER_UP;
     unlockPin = true;
-  } else if (state.lock==true && (state.digits[3]=='-' || delta < 5000)) {
-    if ( state.mode == LX790_SET_PIN )
-      state.mode = LX790_SET_PIN;
-    else
+  } else if (state.lock == true && unlockPin ) {  // mower is locked and last digit is fhashing '-' -> enter pin
+    if ( state.digits[3]=='-' || (state.mode == LX790_ENTER_PIN && delta < 5000) ) {
       state.mode = LX790_ENTER_PIN;
-    state.msg = "PIN eingeben";
-    if ( state.digits[3]=='-' )
-      lastModeUpdate = time; 
-  } else if ( compareDigits(state.digits, "    ") ) {
+      state.msg = "PIN eingeben";
+      if ( state.digits[3]=='-' )
+        lastModeUpdate = time; 
+    }
+  } else if ( compareDigits(state.digits, "    ") ) { // display off -> standby or off
     if ( (state.clock || state.battery) && state.mode != LX790_OFF ) {
       state.mode = LX790_STANDBY;
       state.msg = "standby";
@@ -248,7 +247,7 @@ void decodeDisplay(LX790_State &state) {
       state.msg = "ausgeschalten";
     }
     unlockPin = true;
-  } else if ( compareDigits(state.digits, "[  ]") ) {
+  } else if ( compareDigits(state.digits, "[  ]") ) { // display shows box -> in docking station, charging?
     static uint8_t oldBattery = 0;
     if ( (state.battery > oldBattery) || delta < 5000 ) {
       state.mode = LX790_CHARGING;
@@ -273,43 +272,43 @@ void decodeDisplay(LX790_State &state) {
 
   }
 
-  if ( config.pin[0] ) {
-    if ( unlockPin && state.autoUnlock &&
-          state.mode == LX790_ENTER_PIN && state.wifi) {
+  if ( state.autoUnlock && state.mode == LX790_ENTER_PIN ) {
+    if ( config.pin[0] ) {
       // unlock robot if connected to WiFi
-      static int8_t digitPos = 4;
-      state.msg = "automatische Pin Eingabe";
+      if ( unlockPin && state.wifi) {
+        // unlock robot if connected to WiFi
+        static int8_t digitPos = 4;
+        state.msg = "automatische Pin Eingabe";
 
-      // set current digit position on start
-      if ( digitPos >= 4 ) {
-        if ( state.digits[0] == '-' ) {
-          digitPos = 0;
+        // set current digit position on start
+        if ( digitPos >= 4 ) {
+          if ( state.digits[0] == '-' ) {
+            digitPos = 0;
+          }
         }
-      }
 
-      // key in current digit
-      if ( digitPos < 4 && state.digits[digitPos] != '-' 
-            && (uxQueueMessagesWaiting(cmdQueue) == 0) ) {
-        if ( state.digits[digitPos] < config.pin[digitPos] ) {
-          // send '+' button
-          queueButton(BTN_START);
-        } else if ( state.digits[digitPos] > config.pin[digitPos] ) {
-          // send '-' button
-          queueButton(BTN_HOME);
-        } else {
-          // send OK
-          queueButton(BTN_OK);
-          CMD_Type cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);        
-          digitPos++;
-          if ( digitPos==4 ) {
-            unlockPin = false;
+        // key in current digit
+        if ( digitPos < 4 && state.digits[digitPos] != '-' 
+              && (uxQueueMessagesWaiting(cmdQueue) == 0) ) {
+          if ( state.digits[digitPos] < config.pin[digitPos] ) {
+            // send '+' button
+            queueButton(BTN_START);
+          } else if ( state.digits[digitPos] > config.pin[digitPos] ) {
+            // send '-' button
+            queueButton(BTN_HOME);
+          } else {
+            // send OK
+            queueButton(BTN_OK);
+            CMD_Type cmd = {CMD_Type::WAIT, 250}; xQueueSend(cmdQueue, &cmd, 0);        
+            digitPos++;
+            if ( digitPos==4 ) {
+              unlockPin = false;
+            }
           }
         }
       }
-    }
-  } else {
-    if ( state.autoUnlock && state.mode == LX790_ENTER_PIN ) {
-      // unlock robot if connected to WiFi
+    } else {
+      // no pin configured
       state.msg = "Pin nicht definiert";
     }
   }
