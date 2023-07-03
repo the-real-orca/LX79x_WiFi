@@ -343,7 +343,7 @@ void TaskWeb( void * pvParameters )
     server.handleClient();
 
     // sync state
-    if ( xQueueReceive(stateQueue, &state, 0) == pdPASS ) {
+    if ( xQueueReceive(stateQueue, &state, 0) == pdTRUE ) {
       
       // save log on status change
       static LX790_Mode lastMode = LX790_UNKNOWN;

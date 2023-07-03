@@ -219,15 +219,7 @@ void decodeDisplay(LX790_State &state) {
   }
  
   // mode
-  if ( segCnt == 1 ) {  // only one dash / segment active -> running
-    // running
-    state.mode = LX790_RUNNING;
-    state.msg = "läuft ...";
-    for (int i = 0; i<4; i++)
-    {
-      state.digits[i] = state.segments[i] ? ' ' : '*';
-    }
-  } else if ( compareDigits(state.digits, "8888") && state.point == ':' ) { // all segments active -> self test / power up
+  if ( compareDigits(state.digits, "8888") && state.point == ':' ) { // all segments active -> self test / power up
     state.mode = LX790_POWER_UP;
     unlockPin = true;
   } else if (state.lock == true && unlockPin ) {  // mower is locked and last digit is fhashing '-' -> enter pin
@@ -237,6 +229,28 @@ void decodeDisplay(LX790_State &state) {
       if ( state.digits[3]=='-' )
         lastModeUpdate = time; 
     }
+  } else if ( compareDigits(state.digits, "[  ]") ) { // display shows box -> in docking station, charging?
+    static uint8_t oldBattery = 0;
+    if ( state.battery != oldBattery || (state.mode == LX790_CHARGING && delta < 10000) ) {
+      state.mode = LX790_CHARGING;
+      state.msg = "Laden ...";
+      if (state.battery != oldBattery)
+        lastModeUpdate = time; 
+    } else {
+      state.mode = LX790_DOCKED;
+      state.msg = "in Ladestation";
+    }
+    oldBattery = state.battery;
+  } else if ( segCnt == 1  || (state.mode == LX790_RUNNING && delta < 5000) ) {  // only one dash / segment active , or empty display and was running -> running
+    // running
+    state.mode = LX790_RUNNING;
+    state.msg = "läuft ...";
+    for (int i = 0; i<4; i++)
+    {
+      state.digits[i] = state.segments[i] ? ' ' : '*';
+    }
+    if (segCnt == 1)
+      lastModeUpdate = time;
   } else if ( compareDigits(state.digits, "    ") ) { // display off -> standby or off
     if ( (state.clock || state.battery) && state.mode != LX790_OFF ) {
       state.mode = LX790_STANDBY;
@@ -247,18 +261,6 @@ void decodeDisplay(LX790_State &state) {
       state.msg = "ausgeschalten";
     }
     unlockPin = true;
-  } else if ( compareDigits(state.digits, "[  ]") ) { // display shows box -> in docking station, charging?
-    static uint8_t oldBattery = 0;
-    if ( (state.battery > oldBattery) || delta < 5000 ) {
-      state.mode = LX790_CHARGING;
-      state.msg = "Laden ...";
-       if (state.battery > oldBattery)
-        lastModeUpdate = time; 
-    } else {
-      state.mode = LX790_DOCKED;
-      state.msg = "in Ladestation";
-    }
-    oldBattery = state.battery;
   } else { // try to decode text
     for (int i = 0; LcdToMode[i].Display; i++)
     {

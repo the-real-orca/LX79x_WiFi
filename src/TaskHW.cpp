@@ -243,7 +243,7 @@ void TaskHW( void * pvParameters )
     }
 
     // sync state
-    if ( state.updated || ( (time - lastStateUpdate) > 2000) ) {
+    if ( state.updated || ( (time - lastStateUpdate) > 2500) ) {
       lastStateUpdate = time;
       decodeDisplay(state);
 
