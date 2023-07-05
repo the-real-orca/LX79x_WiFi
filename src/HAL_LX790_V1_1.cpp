@@ -72,9 +72,9 @@ void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
   val = ' ';
   if ( bitRead(raw[3*2], 6) )
       val = '\'';
-  if ( bitRead(raw[3*2], 6) )
+  if ( bitRead(raw[4*2], 6) )
       val = '.';
-  if ( bitRead(raw[3*2], 6) && bitRead(raw[3*2], 6) )
+  if ( bitRead(raw[3*2], 6) && bitRead(raw[4*2], 6) )
       val = ':';
   if ( state.point != val ) state.updated = true;
   state.point = val;
