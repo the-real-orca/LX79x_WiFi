@@ -47,8 +47,40 @@ void HAL_buttonRelease(BUTTONS btn) {
   DEBUG_printf("button released (D%d)\n", pin);
 }
 
-void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
+bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
   byte val;
+
+
+  // LCD digits
+  uint16_t segCnt = 0;
+  bool error = false;
+  for (int i=0; i<4; i++) {
+    byte segments = 0;
+    byte mask = 1 << i;
+    for (int j=0; j<7; j++) {
+      segments |= (raw[j*2] & mask) ? (1<<j) : 0;
+    }
+    if ( state.segments[i] != segments ) state.updated = true;
+    state.segments[i] = segments;
+    byte seg = segments;
+    while (seg) {
+      if (seg & 0x01)
+        segCnt++; 
+      seg = seg >> 1;
+    }
+
+    if ( decodeChar(segments) == '#' ) {
+      // error reading display
+      error = true;
+    }
+  }
+  // return if error on decoding digits, if exactly 1 segment active -> running (no error)
+  if ( error && segCnt != 1 )
+    return false;
+
+  for (int i=0; i<4; i++) {
+    state.digits[i] = decodeChar(state.segments[i]);
+  }
 
   // clock
   val = bitRead(raw[0*2], 4) | bitRead(raw[1*2], 4);
@@ -79,16 +111,7 @@ void decodeTM1668(const uint8_t raw[14], LX790_State &state) {
   if ( state.point != val ) state.updated = true;
   state.point = val;
 
-  // LCD digits
-  for (int i=0; i<4; i++) {
-    byte segments = 0;
-    byte mask = 1 << i;
-    for (int j=0; j<7; j++) {
-      segments |= (raw[j*2] & mask) ? (1<<j) : 0;
-    }
-    if ( state.segments[i] != segments ) state.updated = true;
-    state.segments[i] = segments;
-  }
+  return true;
 }
 
 ESP32SPISlave tm1668;
