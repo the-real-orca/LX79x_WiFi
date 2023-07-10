@@ -196,10 +196,13 @@ void decodeDisplay(LX790_State &state) {
 
   // process segments
   int segCnt=0;
-  for (int i = 0; i<4; i++)
+  for (int i=0; i<4; i++)
   {
     byte seg = state.segments[i];
-    seg = seg & (~SEG7); // clear '-' segment
+    if ( seg & SEG7 ) {
+      segCnt = 0; // invalidate '-' segment
+      break;
+    }
     while (seg) {
       if (seg & 0x01)
         segCnt++; 
@@ -219,26 +222,26 @@ void decodeDisplay(LX790_State &state) {
  
   // mode
   // try to decode text
-  bool match = false;
+  LX790_Mode detectedMode = LX790_UNKNOWN;
   for (int i = 0; LcdToMode[i].Display; i++)
   {
     if ( compareDigits(state.digits, LcdToMode[i].Display) )
     {
       state.msg = LcdToMode[i].Str;
-      state.mode = LcdToMode[i].Mode;
-      match = true;
+      detectedMode = LcdToMode[i].Mode;
+      state.mode = detectedMode;
       break;
     }
   }
-  if ( !match ) {
+  if ( detectedMode == LX790_UNKNOWN ) {
     if ( compareDigits(state.digits, "8888") && state.point == ':' ) { // all segments active -> self test / power up
-      state.mode = LX790_POWER_UP;
+      detectedMode = LX790_POWER_UP;
       unlockPin = true;
     } else if (state.lock == true && unlockPin ) {  // mower is locked and last digit is fhashing '-' -> enter pin
 //      if ( state.mode != LX790_ERROR && state.mode == LX790_RAIN && // do not unlock if in error or rain mode
       if ( ( compareDigits(state.digits, "0---") ||
           ( state.mode == LX790_ENTER_PIN && (state.digits[3]=='-' || delta < 5000) ) )) {
-        state.mode = LX790_ENTER_PIN;
+        detectedMode = LX790_ENTER_PIN;
         state.msg = "PIN eingeben";
         if ( state.digits[3]=='-' )
           lastModeUpdate = time; 
@@ -246,19 +249,19 @@ void decodeDisplay(LX790_State &state) {
     } else if ( compareDigits(state.digits, "[  ]") ) { // display shows box -> in docking station, charging?
       static uint8_t oldBattery = 0;
       if ( state.battery != oldBattery || (state.mode == LX790_CHARGING && delta < 10000) ) {
-        state.mode = LX790_CHARGING;
+        detectedMode = LX790_CHARGING;
         state.msg = "Laden ...";
         if (state.battery != oldBattery)
           lastModeUpdate = time; 
       } else {
-        state.mode = LX790_DOCKED;
+        detectedMode = LX790_DOCKED;
         state.msg = "in Ladestation";
       }
       oldBattery = state.battery;
-      state.mode = LX790_DOCKED; // FIXME overwrite mode (charging detection is not reliable)
+//      detectedMode = LX790_DOCKED; // FIXME overwrite mode (charging detection is not reliable)
     } else if ( segCnt == 1  || (state.mode == LX790_RUNNING && delta < 5000) ) {  // only one dash / segment active , or empty display and was running -> running
       // running
-      state.mode = LX790_RUNNING;
+      detectedMode = LX790_RUNNING;
       state.msg = "läuft ...";
       for (int i = 0; i<4; i++)
       {
@@ -268,15 +271,22 @@ void decodeDisplay(LX790_State &state) {
         lastModeUpdate = time;
     } else if ( compareDigits(state.digits, "    ") ) { // display off -> standby or off
       if ( (state.clock || state.battery) && state.mode != LX790_OFF ) {
-        state.mode = LX790_STANDBY;
+        detectedMode = LX790_STANDBY;
         state.msg = "standby";
       } else {
-        state.mode = LX790_OFF;
+        detectedMode = LX790_OFF;
         memcpy(state.digits, " OFF", 4);
         state.msg = "ausgeschalten";
       }
 //      unlockPin = true; TODO does mower lock in standby???
     }
+  }
+  if ( detectedMode != LX790_UNKNOWN ) 
+  {
+    if ( state.detectedMode == detectedMode ) {
+      state.mode = detectedMode;
+    }
+    state.detectedMode = detectedMode;
   }
 
   if ( state.autoUnlock && state.mode == LX790_ENTER_PIN ) {

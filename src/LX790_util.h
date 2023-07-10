@@ -27,6 +27,7 @@ typedef struct {
   uint8_t battery;
   uint8_t brightness;
   LX790_Mode mode;
+  LX790_Mode detectedMode;  
   bool updated;
   bool autoUnlock;
   bool debugLog;

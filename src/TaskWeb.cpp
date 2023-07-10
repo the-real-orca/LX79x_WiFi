@@ -79,6 +79,7 @@ const char *jsonStatus() {
                   "\"lock\":%d, \"clock\":%d, "
                   "\"battery\":%d, \"brightness\":%d, "
                   "\"mode\":\"%s\", "
+                  "\"detectedMode\":\"%s\", "
                   "\"cmdQueue\":%d, "
                   "\"wifi\":%d, \"rssi\":%d, \"hostname\":\"%s\", "
                   "\"msg\":\"%s\", "
@@ -93,6 +94,7 @@ const char *jsonStatus() {
     state.lock, state.clock, 
     state.battery, state.brightness,
     ModeNames[state.mode],
+    ModeNames[state.detectedMode],
     uxQueueMessagesWaiting(cmdQueue),
     state.wifi, WiFi.RSSI(),
     state.hostname.c_str(),
