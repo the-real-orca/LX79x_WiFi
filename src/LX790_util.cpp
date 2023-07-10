@@ -255,6 +255,7 @@ void decodeDisplay(LX790_State &state) {
         state.msg = "in Ladestation";
       }
       oldBattery = state.battery;
+      state.mode = LX790_DOCKED; // FIXME overwrite mode (charging detection is not reliable)
     } else if ( segCnt == 1  || (state.mode == LX790_RUNNING && delta < 5000) ) {  // only one dash / segment active , or empty display and was running -> running
       // running
       state.mode = LX790_RUNNING;
