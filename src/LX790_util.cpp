@@ -258,17 +258,19 @@ void decodeDisplay(LX790_State &state) {
         state.msg = "in Ladestation";
       }
       oldBattery = state.battery;
-//      detectedMode = LX790_DOCKED; // FIXME overwrite mode (charging detection is not reliable)
-    } else if ( segCnt == 1  || (state.mode == LX790_RUNNING && delta < 5000) ) {  // only one dash / segment active , or empty display and was running -> running
-      // running
-      detectedMode = LX790_RUNNING;
-      state.msg = "läuft ...";
-      for (int i = 0; i<4; i++)
-      {
-        state.digits[i] = state.segments[i] ? ' ' : '*';
+      detectedMode = LX790_DOCKED; // FIXME overwrite mode (charging detection is not reliable)
+    } else if ( state.mode != LX790_ERROR && state.mode != LX790_RAIN ) {
+      if ( segCnt == 1  || (state.mode == LX790_RUNNING && delta < 5000) ) {  // only one dash / segment active , or empty display and was running -> running
+        // running
+        detectedMode = LX790_RUNNING;
+        state.msg = "läuft ...";
+        for (int i = 0; i<4; i++)
+        {
+          state.digits[i] = state.segments[i] ? ' ' : '*';
+        }
+        if (segCnt == 1)
+          lastModeUpdate = time;
       }
-      if (segCnt == 1)
-        lastModeUpdate = time;
     } else if ( compareDigits(state.digits, "    ") ) { // display off -> standby or off
       if ( (state.clock || state.battery) && state.mode != LX790_OFF ) {
         detectedMode = LX790_STANDBY;
