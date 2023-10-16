@@ -73,6 +73,7 @@ const char *jsonStatus() {
 
   sprintf(out, "{\"time\":\"%s\", "
                   "\"runtime\":%0.1f, "
+                  "\"updateTime\":%0.1f, "
                   "\"segments\":[%d,%d,%d,%d], "
                   "\"digits\":\"%c%c%c%c\", "
                   "\"point\":\"%c\", "
@@ -88,6 +89,7 @@ const char *jsonStatus() {
                   "\"build\":\"%s %s\"}",
     utcStr.c_str(),
     millis()/1000.0,
+    state.updateTime/1000.0,
     state.segments[0],state.segments[1],state.segments[2],state.segments[3],
     state.digits[0],state.digits[1],state.digits[2],state.digits[3],
     state.point,

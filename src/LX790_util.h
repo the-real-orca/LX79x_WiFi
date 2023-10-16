@@ -29,6 +29,7 @@ typedef struct {
   LX790_Mode mode;
   LX790_Mode detectedMode;  
   bool updated;
+  long updateTime;
   bool autoUnlock;
   bool debugLog;
   String hostname;

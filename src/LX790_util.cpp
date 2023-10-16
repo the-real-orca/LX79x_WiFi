@@ -93,7 +93,7 @@ struct
   {"STOP", LX790_STOP,  "Gestoppt"},
   {"IDLE", LX790_READY, "Warte auf Start"},
 //  {"[  ]", LX790_DOCKED, "in Ladestation"},
-  {"^^^^", LX790_BLOCKED, "Mähen... Hindernis..."},
+//  {"^^^^", LX790_BLOCKED, "Mähen... Hindernis..."},
   {"Pin1", LX790_SET_PIN, "neuen Pin eingeben"},
   {"Pin2", LX790_SET_PIN, "neuen Pin bestätigen"},
   {"A 50", LX790_SET_AREA, "Fläche einstellen (Di, Fr: 9:00-9:30)"},
@@ -271,6 +271,11 @@ void decodeDisplay(LX790_State &state) {
         if (segCnt == 1)
           lastModeUpdate = time;
       }
+    } else if ( compareDigits(state.digits, "^^^^") && (state.mode == LX790_RUNNING || state.mode == LX790_BLOCKED) ) {
+        // blocked
+        detectedMode = LX790_BLOCKED;
+        state.msg = "Mähen... Hindernis...";
+        lastModeUpdate = time;
     } else if ( compareDigits(state.digits, "    ") ) { // display off -> standby or off
       if ( (state.clock || state.battery) && state.mode != LX790_OFF ) {
         detectedMode = LX790_STANDBY;

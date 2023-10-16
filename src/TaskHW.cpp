@@ -32,7 +32,8 @@ void TaskHW( void * pvParameters )
 
   // init HW Communication
   LX790_State state;
-  unsigned long lastStateUpdate = 0;
+  unsigned long lastDisplayUpdate = 0;
+  unsigned long lastButtonPress = 0;
   memset(&state, 0x00, sizeof state);
   state.digits[0]='#'; state.digits[1]='#'; state.digits[2]='#'; state.digits[3]='#'; state.point=' ';
   state.msg = "";
@@ -216,6 +217,7 @@ void TaskHW( void * pvParameters )
       case CMD_Type::BTN_PRESS:
         HAL_buttonPress(static_cast<BUTTONS>(cmd.param));
         cmd.cmd = CMD_Type::NA;
+        lastButtonPress = time;
         break;
 
       case CMD_Type::BTN_RELEASE:
@@ -243,8 +245,9 @@ void TaskHW( void * pvParameters )
     }
 
     // sync state
-    if ( state.updated || ( (time - lastStateUpdate) > 2500) ) {
-      lastStateUpdate = time;
+    if ( state.updated ) {
+//    if ( state.updated || ( (time - lastDisplayUpdate) > 2500) ) {
+      lastDisplayUpdate = time;
       decodeDisplay(state);
 
 #if DEBUG_SERIAL_PRINT
@@ -255,6 +258,7 @@ void TaskHW( void * pvParameters )
     Serial.print(" battery "); Serial.print(state.battery);
     Serial.print(" brightness "); Serial.print(state.brightness);
     Serial.print(" mode "); Serial.print(state.mode);
+    Serial.print(" updateTime "); Serial.print(state.updateTime);
     Serial.print(" | LCD "); 
     Serial.print(state.digits[0]); Serial.print(state.digits[1]); Serial.print(state.point); Serial.print(state.digits[2]); Serial.print(state.digits[3]);
     Serial.println();

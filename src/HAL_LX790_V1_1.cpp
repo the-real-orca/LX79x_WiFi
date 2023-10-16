@@ -49,7 +49,7 @@ void HAL_buttonRelease(BUTTONS btn) {
 
 bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
   byte val;
-
+  bool updated = false;
 
   // LCD digits
   uint16_t segCnt = 0;
@@ -60,7 +60,7 @@ bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
     for (int j=0; j<7; j++) {
       segments |= (raw[j*2] & mask) ? (1<<j) : 0;
     }
-    if ( state.segments[i] != segments ) state.updated = true;
+    if ( state.segments[i] != segments ) updated = true;
     state.segments[i] = segments;
     byte seg = segments;
     while (seg) {
@@ -84,7 +84,7 @@ bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
 
   // clock
   val = bitRead(raw[0*2], 4) | bitRead(raw[1*2], 4);
-  if ( state.clock != val ) state.updated = true;
+  if ( state.clock != val ) updated = true;
   state.clock = val;
 
   // wifi
@@ -92,12 +92,12 @@ bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
 
   // lock
   val = bitRead(raw[4*2], 4) | bitRead(raw[5*2], 4);
-  if ( state.lock != val ) state.updated = true;
+  if ( state.lock != val ) updated = true;
   state.lock = val;
 
   // battery
   val = bitRead(raw[2*2], 6) + bitRead(raw[1*2], 6) + bitRead(raw[0*2], 6);
-  if ( state.battery != val ) state.updated = true;
+  if ( state.battery != val ) updated = true;
   state.battery = val;
 
   // dots
@@ -108,8 +108,13 @@ bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
       val = '.';
   if ( bitRead(raw[3*2], 6) && bitRead(raw[4*2], 6) )
       val = ':';
-  if ( state.point != val ) state.updated = true;
+  if ( state.point != val ) updated = true;
   state.point = val;
+
+  if ( updated ) {
+    state.updated = true;
+    state.updateTime = millis();
+  }
 
   return true;
 }
