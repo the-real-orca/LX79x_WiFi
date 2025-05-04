@@ -341,6 +341,7 @@ void TaskWeb( void * pvParameters )
   server.enableCORS(true);
   server.begin();
 
+  DEBUG_println("TaskWeb running");
   while(1)
   {
     // handle web server

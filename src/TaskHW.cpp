@@ -54,6 +54,7 @@ void TaskHW( void * pvParameters )
   CMD_Type cmd = {CMD_Type::NA, 0};
   unsigned long cmdStart = 0;
 
+  DEBUG_println("TaskHW running");
   while(1)
   {
     time = millis();
@@ -87,18 +88,19 @@ void TaskHW( void * pvParameters )
         }
         else
         {   
-          // start AP
-          Serial.println(F("start AP.."));
+          // start captivePortal AP
+          Serial.println(F("start captivePortal AP.."));
           WiFi.mode(WIFI_AP);
           delay(100);
           if ( !WiFi.softAP(config.hostname.c_str(), config.portalPassword.c_str()) ) {
             Serial.println("softAP failed");
           }
-          delay(100);
+          delay(500);
 
           Serial.print("AP SSID: "); Serial.println(config.hostname);
           Serial.print("AP password: "); Serial.println(config.portalPassword);
           Serial.print("AP IP address: "); Serial.println(WiFi.softAPIP());
+          Serial.flush();
 
           // Setup the DNS server redirecting all the domains
           dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
@@ -172,7 +174,7 @@ void TaskHW( void * pvParameters )
       case CMD_Type::REBOOT:
         if ( (time - cmdStart) > cmd.param ) {
           // finished timeout
-          DEBUG_println("reboot ESP32");
+          Serial.println("reboot ESP32");
           cmd.cmd = CMD_Type::NA;
           ESP.restart();
         }
@@ -180,7 +182,7 @@ void TaskHW( void * pvParameters )
 
       case CMD_Type::DISCONNECT:
         // disconnet network
-        DEBUG_println("disconnet network");
+        Serial.println("disconnet network");
         if ( WiFi.getMode() == WIFI_AP ) {
           dnsServer.stop();
           WiFi.softAPdisconnect();
@@ -196,7 +198,7 @@ void TaskHW( void * pvParameters )
 
       case CMD_Type::WIFI_CLIENT:
         // enable client mode
-        DEBUG_println("enable client mode");
+        Serial.println("enable client mode");
         config.wifiEnabled = true;
         config.captivePortal = false;
         WiFiConnected = false;
@@ -206,7 +208,7 @@ void TaskHW( void * pvParameters )
 
       case CMD_Type::WIFI_PORTAL:
         // enable captive portal
-        DEBUG_println("enable captive portal");
+        Serial.println("enable captive portal");
         config.wifiEnabled = true;
         config.captivePortal = true;
         WiFiConnected = false;

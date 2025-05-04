@@ -4,7 +4,6 @@
 #include <SPIFFS.h>
 #include "LX790_util.h"
 
-// Copy "config_sample.h" to "config.h" and change it according to your setup.
 #include "config.h"
 
 
@@ -23,6 +22,7 @@ void setup()
 {
   Serial.begin(115200);
   while (!Serial);
+  Serial.println("\n\nLX79x_WiFi application started");
   Serial.print("Build date: "); Serial.print  (__DATE__);
   Serial.print(" time: "); Serial.println(__TIME__);
 
@@ -32,6 +32,12 @@ void setup()
   // read config
   config.captivePortal = false;
   config.portalTimeout = 10 * 60;
+
+  if (!SPIFFS.exists("/index.html")) {
+    Serial.println(F("Failed to read filesystem"));
+	  Serial.println(F("Build & upload Filesystem Image first!"));
+    while(1) {}	
+  }
 
   File file = SPIFFS.open("/config.json", "r");
 
@@ -52,6 +58,17 @@ void setup()
   config.portalPassword = doc["portalPassword"] | "";
   file.close();
 
+  DEBUG_println("config");
+  DEBUG_print("  name: "); DEBUG_println(config.hostname);
+  DEBUG_print("  pin: "); DEBUG_println(config.pin);
+  DEBUG_print("  wifiEnabled: "); DEBUG_println(config.wifiEnabled);
+  DEBUG_print("  wifiSSID: "); DEBUG_println(config.wifiSSID);
+  DEBUG_print("  wifiPassword: "); DEBUG_println(config.wifiPassword);
+  DEBUG_print("  captivePortal: "); DEBUG_println(config.captivePortal);
+  DEBUG_print("  portalTimeout: "); DEBUG_println(config.portalTimeout);
+  DEBUG_print("  portalPassword: "); DEBUG_println(config.portalPassword);
+  DEBUG_println("");
+
   stateQueue = xQueueCreate(2, sizeof(LX790_State));
   if (stateQueue == NULL) {
     Serial.println(F("init state queue error"));
@@ -64,6 +81,7 @@ void setup()
     while(1) {}
   }
 
+  DEBUG_println("start TaskHW");
   xTaskCreatePinnedToCore(
     TaskHW,   // Function to implement the task -> I2C, WiFi
     "TaskHW", // Name of the task
@@ -73,8 +91,9 @@ void setup()
     &hTaskHW, // Task handle
     0);      // Core where the task should run
 
-  delay(500);
+  delay(2000);
 
+  DEBUG_println("start TaskWeb");
   xTaskCreatePinnedToCore(
     TaskWeb,   // Function to implement the task -> Webserver
     "TaskWeb", // Name of the task

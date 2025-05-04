@@ -192,7 +192,7 @@ void HAL_loop(LX790_State &state) {
   
   if ( !config.captivePortal && state.brightness> 0 && btnHomeVal == 0 && ( (time-btnHomeTime) > 9000) ) {
     btnHomeTime = time; // reset timer for home botton to prevent multiple execution
-    DEBUG_println("home button pressed 10s -> activate captive portal");
+    Serial.println("home button pressed 10s -> activate captive portal");
     CMD_Type xcmd;
     xcmd = {CMD_Type::DISCONNECT, 0}; xQueueSend(cmdQueue, &xcmd, 0);
     xcmd = {CMD_Type::WAIT, 1000}; xQueueSend(cmdQueue, &xcmd, 0);
