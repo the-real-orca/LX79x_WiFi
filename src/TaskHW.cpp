@@ -89,7 +89,7 @@ void TaskHW( void * pvParameters )
         else
         {   
           // start captivePortal AP
-          Serial.println(F("start captivePortal AP.."));
+          Serial.println("start captivePortal AP..");
           WiFi.mode(WIFI_AP);
           delay(100);
           if ( !WiFi.softAP(config.hostname.c_str(), config.portalPassword.c_str()) ) {

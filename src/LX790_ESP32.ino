@@ -35,14 +35,16 @@ void setup()
 
   if (!SPIFFS.exists("/index.html")) {
     Serial.println(F("Failed to read filesystem"));
-	  Serial.println(F("Build & upload Filesystem Image first!"));
-    while(1) {}	
+    Serial.println(F("Build & upload Filesystem Image first!"));
+    while(1) {
+      delay(1000);
+    }	
   }
 
   File file = SPIFFS.open("/config.json", "r");
 
   // deserialize the JSON document
-  StaticJsonDocument<512> doc;
+  JsonDocument doc;
   DeserializationError error = deserializeJson(doc, file);
   if (error)
     Serial.println(F("Failed to read file, using default configuration"));
@@ -91,7 +93,7 @@ void setup()
     &hTaskHW, // Task handle
     0);      // Core where the task should run
 
-  delay(2000);
+  delay(1000);
 
   DEBUG_println("start TaskWeb");
   xTaskCreatePinnedToCore(

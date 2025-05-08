@@ -120,15 +120,17 @@ bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
 }
 
 ESP32SPISlave tm1668;
-uint8_t spi_slave_rx_buf[32];
+const uint8_t spi_slave_rx_buf_size = 16;
+uint8_t spi_slave_rx_buf[spi_slave_rx_buf_size*4];
+uint8_t spi_slave_rx_buf_read_pos = 0;
 
 void HAL_setup()
 {
   // init HW Communication
   tm1668.setDataMode(SPI_MODE1);
   tm1668.setSlaveFlags(SPI_SLAVE_BIT_LSBFIRST);
+  tm1668.setQueueSize(4);
   tm1668.begin(VSPI, CLK_PIN_DISPLAY, VSPI_MISO, DIO_PIN_DISPLAY, CS_PIN_DISPLAY);
-//  tm1668.begin(HSPI);
 
   pinMode(CS_PIN_DISPLAY, INPUT);
   pinMode(DIO_PIN_DISPLAY, INPUT);
@@ -151,33 +153,49 @@ void HAL_loop(LX790_State &state) {
   static long btnHomeTime = -1;
   static byte btnHomeVal = -1;
 
-  // read data via SPI
-  if (tm1668.remained() == 0)
-    tm1668.queue(spi_slave_rx_buf, sizeof spi_slave_rx_buf);
+  // read SPI buffer (LCD data)
+  int len = tm1668.numBytesReceived();
+  while (len) {
+    uint8_t brightness;
+    uint8_t *ptr = spi_slave_rx_buf + spi_slave_rx_buf_read_pos;
+    spi_slave_rx_buf_read_pos += spi_slave_rx_buf_size;
+    uint8_t cmd = ptr[0];
 
-  // LCD
-  while (tm1668.available()) {
-    int size = tm1668.size();
-    if ( size ) {
-      uint8_t cmd = spi_slave_rx_buf[0];
-      switch ( cmd & DISPLAY_CMD_MASK ) {
-        case DISPLAY_CMD_MODE_SET:
-        case DISPLAY_CMD_DATA_SET:
-          // ignore
-          break;
-        
-        case DISPLAY_CMD_CONTROL:
-          state.brightness = bitRead(cmd, 4) ? 0 : (cmd & 0xE) + 1;
-          break;
+    switch ( cmd & DISPLAY_CMD_MASK ) {
+      case DISPLAY_CMD_CONTROL:
+      brightness = bitRead(cmd, 4) ? 0 : (cmd & 0xE) + 1;
+        if (state.brightness != brightness) 
+        {
+          state.brightness = brightness;
+          state.updated = true;
+          state.updateTime = millis();
+        }
+        break;
 
-        case DISPLAY_CMD_ADDRESS:
-          if ( size == 15) {
-            decodeTM1668(spi_slave_rx_buf+1, state);
-          }
-          break;
-      }
+      case DISPLAY_CMD_MODE_SET:
+      case DISPLAY_CMD_DATA_SET:
+      // ignore
+        break;
+
+      case DISPLAY_CMD_ADDRESS:
+        if ( len == 15) {
+          decodeTM1668(ptr+1, state);
+        }
+        break;
     }
-    tm1668.pop();
+    len = tm1668.numBytesReceived();
+  }
+
+  // start data read via SPI
+  if ( tm1668.hasTransactionsCompletedAndAllResultsHandled() ) {
+    spi_slave_rx_buf_read_pos = 0;
+
+    size_t buf_ptr = 0;
+    tm1668.queue(NULL, &spi_slave_rx_buf[buf_ptr], spi_slave_rx_buf_size); buf_ptr += spi_slave_rx_buf_size;
+    tm1668.queue(NULL, &spi_slave_rx_buf[buf_ptr], spi_slave_rx_buf_size); buf_ptr += spi_slave_rx_buf_size;
+    tm1668.queue(NULL, &spi_slave_rx_buf[buf_ptr], spi_slave_rx_buf_size); buf_ptr += spi_slave_rx_buf_size;
+    tm1668.queue(NULL, &spi_slave_rx_buf[buf_ptr], spi_slave_rx_buf_size); buf_ptr += spi_slave_rx_buf_size;
+    tm1668.trigger();
   }
 
   // press "HOME" button for 10 seconds to start captive portal
