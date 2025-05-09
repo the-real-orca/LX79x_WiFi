@@ -31,6 +31,10 @@ const char *UPDATE_HTML =
   #include "update.html.h"
 ;
 
+const char *NOFILESYSTEM_HTML =
+  #include "nofilesystem.html.h"
+;
+
 boolean isIp(String str) {
   for (size_t i = 0; i < str.length(); i++) {
     int c = str.charAt(i);
@@ -268,8 +272,13 @@ void TaskWeb( void * pvParameters )
     if ( captivePortal() )
       return;
 
-    if ( !handleFileRead(server.uri()) )
+    if ( !handleFileRead(server.uri()) ) {
+      if (!SPIFFS.exists("/index.html")) {
+        server.send(200, "text/html", NOFILESYSTEM_HTML);
+      } else {
         server.send(404, "text/plain", "FileNotFound");
+      }
+    }
   });
 
 
@@ -303,8 +312,8 @@ void TaskWeb( void * pvParameters )
     server.sendContent("</body></html>");
     server.sendContent("");
 
-     
   });
+
   server.on("/fileupload", HTTP_POST, []() {
     server.sendHeader("Location", "/update");
     server.send(301, "text/plain", "OK");
@@ -314,7 +323,6 @@ void TaskWeb( void * pvParameters )
     server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
     CMD_Type cmd = {CMD_Type::REBOOT, 500}; xQueueSend(cmdQueue, &cmd, 0);
   }, Web_execupdate );
-
 
   server.on("/cmd", HTTP_GET, Web_getCmd);
   server.on("/status", HTTP_GET, Web_aktStatusWeb);

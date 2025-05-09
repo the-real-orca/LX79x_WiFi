@@ -11,7 +11,7 @@
 /*
  * Debug
  */
-#define DEBUG_SERIAL_PRINT 0
+#define DEBUG_SERIAL_PRINT 0 // 1: enable debug serial print, 0: disable debug serial print
 
 #if DEBUG_SERIAL_PRINT
   #define DEBUG_println(x)  Serial.println(x)

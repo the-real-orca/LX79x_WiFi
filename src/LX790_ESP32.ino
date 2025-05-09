@@ -34,11 +34,8 @@ void setup()
   config.portalTimeout = 10 * 60;
 
   if (!SPIFFS.exists("/index.html")) {
-    Serial.println(F("Failed to read filesystem"));
-    Serial.println(F("Build & upload Filesystem Image first!"));
-    while(1) {
-      delay(1000);
-    }	
+    Serial.println(F("ERROR: Failed to read filesystem"));
+    Serial.println(F("!-!-!-! build & upload filesystem image !-!-!-!"));
   }
 
   File file = SPIFFS.open("/config.json", "r");
