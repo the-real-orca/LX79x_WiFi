@@ -3,7 +3,7 @@
 #include <WiFi.h>
 #include "esp_wifi.h"
 #include <DNSServer.h>
-#include <mDNS.h>
+#include <ESPmDNS.h>
 #include "esp_ota_ops.h"
 
 #include "LX790_util.h"
@@ -106,6 +106,10 @@ void TaskHW( void * pvParameters )
           dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
           dnsServer.start(53, "*", WiFi.softAPIP());
 
+          if (MDNS.begin(config.hostname.c_str())) {
+            Serial.println("MDNS responder started");
+          }
+
           WiFiConnected = true;
           lastWifiUpdate = time;
         }
@@ -132,6 +136,9 @@ void TaskHW( void * pvParameters )
           {
             WiFiConnected = true;
             Serial.print("WiFi successfully connected with IP: "); Serial.println(WiFi.localIP());
+            if (MDNS.begin(config.hostname.c_str())) {
+              Serial.println("MDNS responder started");
+            }
           }
           else if ( (time - lastWifiUpdate) > 4000)
           {
