@@ -1,0 +1,9 @@
+{
+ "name": "LX790",
+ "pin": "1234",
+ "wifiSSID": "wlan",
+ "wifiPassword": "passwort",
+ "captivePortal": true,
+ "portalPassword": "",
+ "portalTimeout": 600
+}
