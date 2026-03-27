@@ -148,3 +148,10 @@ Eine Aufzeichnung sieht dann so aus:
 http://MOWERADRESS/update
 
 Damit kann eine .bin Datei auf den ESP32 hochgeladen werden.
+
+---
+
+### Entwicklung mit Docker
+Für eine konsistente Build-Umgebung steht ein Docker-Setup zur Verfügung. Dies ist besonders nützlich, wenn man keine lokale Arduino IDE oder PlatformIO Installation pflegen möchte.
+
+Details zur Einrichtung und Verwendung finden sich in der [docker_setup.md](docker_setup.md).
