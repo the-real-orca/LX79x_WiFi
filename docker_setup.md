@@ -14,14 +14,15 @@ This repository provides a comprehensive Docker environment for developing, buil
 
 ## 1. Setup
 
-### Build the Docker Image
+### Start the Container with Docker Compose
 ```bash
-docker build -t lx790-dev .
+docker compose up -d
 ```
+This will build and start the `lx790-gemini` container in the background.
 
 ### Start an Interactive Shell
 ```bash
-docker run --rm -it -v ./:/workspace lx790-dev
+docker compose exec -it lx790-gemini bash
 ```
 
 ---
@@ -32,18 +33,19 @@ PlatformIO is the preferred way to manage dependencies and build this project.
 
 ### Build Project
 ```bash
-docker run --rm -v ./:/workspace lx790-dev pio run
+docker compose exec lx790-gemini pio run
 ```
 
 ### Clean Build Files
 ```bash
-docker run --rm -v ./:/workspace lx790-dev pio run -t clean
+docker compose exec lx790-gemini pio run -t clean
 ```
 
 ### Flash to Device
 Ensure your ESP32 is connected and recognized (usually `/dev/ttyUSB0`).
+Since Docker Compose doesn't automatically map your device, use a one-off `docker compose run` command for flashing:
 ```bash
-docker run --rm -it --device=/dev/ttyUSB0 -v ./:/workspace lx790-dev pio run -t upload
+docker compose run --rm --device=/dev/ttyUSB0 lx790-gemini pio run -t upload
 ```
 
 #### Windows
@@ -55,7 +57,6 @@ usbipd bind --busid <BUSID>
 usbipd attach --wsl --busid <BUSID>
 ```
 
-
 ---
 
 ## 3. Usage with Arduino CLI
@@ -64,13 +65,14 @@ If you prefer using the Arduino CLI directly for the `.ino` sketch:
 
 ### Compile Sketch
 ```bash
-docker run --rm -v ./:/workspace lx790-dev \
+docker compose exec lx790-gemini \
     arduino-cli compile --fqbn esp32:esp32:esp32doit-devkit-v1 /workspace/src/LX790_ESP32.ino
 ```
 
 ### Upload Sketch
+As with PlatformIO, use a one-off `docker compose run` command to access the hardware:
 ```bash
-docker run --rm -it --device=/dev/ttyUSB0 -v ./:/workspace lx790-dev \
+docker compose run --rm --device=/dev/ttyUSB0 lx790-gemini \
     arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32doit-devkit-v1 /workspace/src/LX790_ESP32.ino
 ```
 
@@ -78,11 +80,11 @@ docker run --rm -it --device=/dev/ttyUSB0 -v ./:/workspace lx790-dev \
 
 ## 4. Usage with Gemini CLI
 
-The environment includes the Gemini CLI for AI assistance.
+The environment includes the Gemini CLI for AI assistance. Your Gemini configuration is persisted in the `.gemini` folder in your project directory.
 
 ### Run Gemini CLI
 ```bash
-docker run --rm -it -v ./:/workspace -e GEMINI_API_KEY=$GEMINI_API_KEY lx790-dev gemini-cli
+docker compose exec -it lx790-gemini gemini-cli
 ```
 
 ---
@@ -96,5 +98,9 @@ Alternatively, temporarily change permissions:
 sudo chmod 666 /dev/ttyUSB0
 ```
 
-### Build Context
-A `.dockerignore` file is used to speed up the image build process by excluding unnecessary directories like `.git`, `.pio`, `docs`, and `pic`.
+### Docker Compose Container Name
+You can check the name of the running container with:
+```bash
+docker compose ps
+```
+The service name is `lx790-gemini`.

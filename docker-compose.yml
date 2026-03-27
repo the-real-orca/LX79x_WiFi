@@ -1,0 +1,21 @@
+services:
+  lx790-gemini:
+    build: .
+    container_name: lx790-gemini
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - ./.gemini:/root/.gemini
+    environment:
+      - FORCE_COLOR=1
+      - TERM=xterm-256color
+      - COLORTERM=truecolor
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+      # Optional: Dein API Key (falls du kein Google-Login nutzt)
+      # - GEMINI_API_KEY=${GEMINI_API_KEY}
+    # Verhindert, dass der Container sofort wieder schließt
+    entrypoint: ["bash"]
+

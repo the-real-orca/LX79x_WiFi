@@ -4,6 +4,7 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.gemini
 /LX79x_WiFi.code-workspace
 src/data/Thumbs.db
 Thumbs.db

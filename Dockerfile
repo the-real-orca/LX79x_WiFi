@@ -51,6 +51,7 @@ RUN mkdir -p /etc/apt/keyrings \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Gemini CLI
+RUN echo
 RUN npm install -g @google/gemini-cli
 
 WORKDIR /workspace
