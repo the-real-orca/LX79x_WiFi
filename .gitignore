@@ -5,8 +5,8 @@
 .vscode/launch.json
 .vscode/ipch
 .gemini
+session_*.md
 /LX79x_WiFi.code-workspace
-src/data/Thumbs.db
 Thumbs.db
 /firmware
 /src/data/config.json
