@@ -15,6 +15,6 @@ Act as SW Engineer, supporting the development of a new project.
 - **Verification:** Ensure that code is documented and tested before committing.
 
 ## Session Summary
-- file with current date and time "session <YYYY-MM-DD> <HH-mm>.md"
+- file with current date and time "log/session_<YYYY-MM-DD>_<HH-mm>.md" (local time)
 - write a structured summary what you have done in the current session
 - add a table with new, modified or deleted files with a short changelog
