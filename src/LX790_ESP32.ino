@@ -10,7 +10,26 @@
 TaskHandle_t hTaskHW;   //Hardware: I2C, WiFi...
 TaskHandle_t hTaskWeb;   //Web...
 
+/**
+ * @brief Main hardware and network management task.
+ * 
+ * This task handles the WiFi connection (Client or Captive Portal), 
+ * processes hardware communication via the HAL, manages the command queue 
+ * for robot actions, and synchronizes the robot state.
+ * 
+ * @param pvParameters Pointer to task parameters (unused).
+ */
 void TaskHW( void * pvParameters );
+
+/**
+ * @brief Web server task.
+ * 
+ * This task handles the web interface, serves static files, 
+ * processes configuration updates, and provides API endpoints 
+ * for remote control.
+ * 
+ * @param pvParameters Pointer to task parameters (unused).
+ */
 void TaskWeb( void * pvParameters );
 
 SemaphoreHandle_t stateQueue = NULL;

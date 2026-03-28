@@ -183,6 +183,12 @@ uint8_t encodeSeg (uint8_t c)
   return (SEG1 | SEG4 | SEG7);
 }
 
+/**
+ * @brief Compares two 4-character arrays for equality.
+ * @param a First array.
+ * @param b Second array.
+ * @return true if arrays are equal (memcmp returns 0), false otherwise.
+ */
 inline bool compareDigits(const char a[4], const char b[4]) {
   return memcmp(a,b,4) == 0;
 }

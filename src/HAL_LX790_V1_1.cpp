@@ -7,6 +7,11 @@
 
 #include "HAL_LX790_V1_1.h"
 
+/**
+ * @brief Maps a BUTTONS enum value to its corresponding GPIO pin.
+ * @param btn The button.
+ * @return The GPIO pin number, or 0 if unknown.
+ */
 static inline byte getButtonPin(BUTTONS btn) {
   switch (btn) {
     case BTN_IO:
@@ -47,6 +52,14 @@ void HAL_buttonRelease(BUTTONS btn) {
   DEBUG_printf("button released (D%d)\n", pin);
 }
 
+/**
+ * @brief Decodes raw TM1668 SPI data into robot state.
+ * Extracts segment patterns for digits, icons (clock, lock, battery, wifi) 
+ * and dots/colons.
+ * @param raw The 14 bytes of raw data from TM1668.
+ * @param state Reference to the state structure to be updated.
+ * @return true if decoding was successful and data is valid, false otherwise.
+ */
 bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
   byte val;
   bool updated = false;

@@ -35,6 +35,11 @@ const char *NOFILESYSTEM_HTML =
   #include "nofilesystem.html.h"
 ;
 
+/**
+ * @brief Checks if a string represents an IPv4 address.
+ * @param str The string to check.
+ * @return true if it is an IP address, false otherwise.
+ */
 boolean isIp(String str) {
   for (size_t i = 0; i < str.length(); i++) {
     int c = str.charAt(i);
@@ -45,6 +50,11 @@ boolean isIp(String str) {
   return true;
 }
 
+/**
+ * @brief Converts an IPAddress object to a string.
+ * @param ip The IPAddress object.
+ * @return A string representation of the IP address.
+ */
 String toStringIp(IPAddress ip) {
   String res = "";
   for (int i = 0; i < 3; i++) {
@@ -54,7 +64,12 @@ String toStringIp(IPAddress ip) {
   return res;
 }
 
-// checks if the request is for the controllers IP, if not we redirect automatically to the captive portal 
+/**
+ * @brief Checks if the request should be redirected to the captive portal.
+ * Redirects if the host header is not an IP address (e.g. when a client 
+ * connects to the AP and tries to access a website).
+ * @return true if redirected, false otherwise.
+ */
 boolean captivePortal() {
   if (!isIp(server.hostHeader())) {
     DEBUG_println("Request redirected to captive portal");
@@ -68,6 +83,10 @@ boolean captivePortal() {
 
 
 
+/**
+ * @brief Generates a JSON string representing the current robot status.
+ * @return A pointer to a static buffer containing the JSON string.
+ */
 const char *jsonStatus() {
 
   //  handle NTP time
@@ -111,6 +130,10 @@ const char *jsonStatus() {
   return out;
 }
 
+/**
+ * @brief Web server handler for retrieving the system log.
+ * Sends the log content in JSON format.
+ */
 void Web_getLog()
 {
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -132,6 +155,10 @@ void Web_getLog()
   server.sendContent("");
 }
 
+/**
+ * @brief Web server handler for retrieving the debug log.
+ * Sends the log content in JSON format.
+ */
 void Web_getDebugLog()
 {
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -153,16 +180,19 @@ void Web_getDebugLog()
   server.sendContent("");
 }
 
-// Request:   http://MOWERADRESS/web
-// Response:  [cnt];[Display];[point];[lock];[clock];[bat];[rssi dbm];[Cnt_timeout];[Cnt_err];[LstError];[MowerStatustext]
+/**
+ * @brief Web server handler for the /status endpoint.
+ * Returns the current robot status as JSON.
+ */
 void Web_aktStatusWeb()
 {
   server.send(200,"text/json", jsonStatus());
 }
 
-//Webcommand examples: 
-// Send command:         http://MOWERADRESS/cmd?parm=[command/button]&value=[state/time]
-// Send command example: http://MOWERADRESS/cmd?parm=start&value=1
+/**
+ * @brief Web server handler for the /cmd endpoint.
+ * Processes commands received via URL parameters (parm and value).
+ */
 void Web_getCmd()
 {
   if (server.argName(0) == "parm" &&
@@ -230,6 +260,10 @@ void Web_getCmd()
   server.send(200,"text/plain", "ok");
 }
 
+/**
+ * @brief Web server handler for firmware updates.
+ * Manages the multi-part upload and flashing of the new firmware.
+ */
 void Web_execupdate()
 {
   HTTPUpload& upload = server.upload();

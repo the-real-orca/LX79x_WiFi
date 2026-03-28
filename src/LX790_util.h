@@ -48,9 +48,42 @@ typedef struct {
 } CMD_Type;
 // LX790 Commands TaskWeb --> TaskHW
 extern QueueHandle_t cmdQueue;
+/**
+ * @brief Queues a button press sequence (Press, Wait, Release).
+ * 
+ * @param btn The button to press.
+ * @param delay Delay between press and release in milliseconds (default 100ms).
+ */
 void queueButton(BUTTONS btn, int delay = 250);
 
 // display helper functions
+
+/**
+ * @brief Decodes a 7-segment bit pattern into a character.
+ * 
+ * @param raw The 7-segment bit pattern.
+ * @return char The decoded character or '#' if unknown.
+ */
 char decodeChar (char raw);
+
+/**
+ * @brief Encodes a character into a 7-segment bit pattern.
+ * 
+ * @param c The character to encode.
+ * @return uint8_t The encoded 7-segment bit pattern or a default pattern if unknown.
+ */
 uint8_t encodeSeg (uint8_t c);
+
+/**
+ * @brief Interprets the 7-segment display content and updates the robot state.
+ * 
+ * This function performs the following steps:
+ * 1. Counts active segments to detect certain states (e.g. running).
+ * 2. Normalizes digits (handling scrolling text).
+ * 3. Matches the display content against known status strings to determine the mode.
+ * 4. Handles special cases like charging, standby, and pin entry.
+ * 5. Implements the auto-unlock logic if enabled.
+ * 
+ * @param out Reference to the LX790_State structure to be updated.
+ */
 void decodeDisplay(LX790_State &out);
