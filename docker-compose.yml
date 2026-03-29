@@ -2,6 +2,7 @@ services:
   lx790-gemini:
     build: .
     container_name: lx790-gemini
+    restart: unless-stopped
     stdin_open: true
     tty: true
     working_dir: /workspace

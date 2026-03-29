@@ -40,6 +40,9 @@ RUN git clone --recursive https://github.com/espressif/esp-idf.git ${IDF_PATH} \
     && ./install.sh \
     && echo "source ${IDF_PATH}/export.sh" >> /root/.bashrc
 
+# Install pytest for testing
+RUN pip install --no-cache-dir pytest
+
 # Install Node.js 20 for Gemini CLI
 RUN mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
