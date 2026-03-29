@@ -101,7 +101,9 @@ Automatische Eingabe des PIN-Codes, wenn der Mäher gesperrt ist.
 ### 4.4 WLAN-Konfiguration (FR-004)
 Verwaltung der WLAN-Zugangsdaten und des Captive Portals.
 
- - **Auslöser:** Erststart oder fehlende Verbindung zum Netzwerk.
+ - **Auslöser:** 
+   - Erststart oder fehlende Verbindung zum Netzwerk.
+   - press "HOME" button for 10 seconds to start captive portal
 
  - **Verhalten:**
    - Start des Access Points
