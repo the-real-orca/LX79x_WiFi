@@ -134,7 +134,8 @@ bool decodeTM1668(const uint8_t raw[14], LX790_State &state) {
 
 ESP32SPISlave tm1668;
 const uint8_t spi_slave_rx_buf_size = 16;
-uint8_t spi_slave_rx_buf[spi_slave_rx_buf_size*4];
+const uint8_t spi_slave_rx_buf_slots = 4;
+uint8_t spi_slave_rx_buf[spi_slave_rx_buf_size*spi_slave_rx_buf_slots];
 uint8_t spi_slave_rx_buf_read_pos = 0;
 
 void HAL_setup()
@@ -171,7 +172,22 @@ void HAL_loop(LX790_State &state) {
   while (len) {
     uint8_t brightness;
     uint8_t *ptr = spi_slave_rx_buf + spi_slave_rx_buf_read_pos;
+
+    #if DEBUG_SERIAL_PRINT
+    {
+      DEBUG_print("SPI RAW: ");
+      for (int i=0; i<spi_slave_rx_buf_size; i++) {
+        char hex[4];
+        sprintf(hex, "%02X ", ptr[i]);
+        DEBUG_print(hex);
+      }
+      DEBUG_printf(" (len: %d)\n", len);
+    }
+    #endif
+
     spi_slave_rx_buf_read_pos += spi_slave_rx_buf_size;
+    if ( spi_slave_rx_buf_read_pos >= spi_slave_rx_buf_size*spi_slave_rx_buf_slots )
+      spi_slave_rx_buf_read_pos = 0;
     uint8_t cmd = ptr[0];
 
     switch ( cmd & DISPLAY_CMD_MASK ) {
